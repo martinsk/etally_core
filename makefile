@@ -9,21 +9,21 @@
 CC = g++
 
 # define any compile-time flags
-CFLAGS = -Wall -O3
+CFLAGS = -Wall -O3 -std=c++11 
 
 # define any directories containing header files other than /usr/include
 #
-INCLUDES = -I./include
+INCLUDES = -I./include -I/usr/local/lib/erlang/lib/erl_interface-3.7.13/include/
 
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS = 
+LFLAGS =  -lc++  -lerl_interface -lei -lc
 
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
 #   option, something like (this will link in libmylib.so and libm.so:
-LIBS = #
+LIBS = -L/usr/local/lib/erlang/lib/erl_interface-3.7.13/lib #
 
 # define the C source files
 SRCS = src/test.cc src/event_scanner.cc src/event_array.cc src/action_container.cc
@@ -63,7 +63,7 @@ $(MAIN): $(OBJS)
 	$(CC) $(CFLAGS) $(INCLUDES) -c $<  -o $@
 
 clean:
-	$(RM) *.o *~ $(MAIN)
+	$(RM) */*.o *~ $(MAIN)
 
 depend: $(SRCS)
 	makedepend $(INCLUDES) $^

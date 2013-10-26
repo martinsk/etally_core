@@ -4,11 +4,11 @@
 #include "types.hh"
 
 #include <vector>
-#include <tr1/functional>
-#include <tr1/unordered_map>
+#include <functional>
+#include <unordered_map>
 
-using std::tr1::hash;
-using std::tr1::unordered_map;
+using std::hash;
+using std::unordered_map;
 
 typedef unordered_map<action_t, std::vector<counter_idx_t> , hash<idx_t>, eqidx> action_map_t;
 
