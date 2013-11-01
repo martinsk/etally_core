@@ -14,18 +14,19 @@ private:
   idx_t back;
   idx_t front;
   timestamp_t timespan;
-  action_container actions;
-
-  std::vector<event_scanner> scanners;
+  event_array* tail;
 
 public:
-  event_array(timestamp_t timespan, action_container actions, std::vector<event_scanner> scanners);
+  event_array(timestamp_t timespan, event_array* const tail = NULL);
   ~event_array();
   
-  void event(idx_t event_idx);
-  void update(timestamp_t now);
+  std::unordered_map<unsigned, unsigned long> counters;
 
-  void add_scanner(event_scanner scanner);
+  void event(struct event e);
+  void event(idx_t event_idx, timestamp_t insert_time = 0);
+  void update(timestamp_t now = 0);
+  void increment_counter(idx_t idx);
+
   int length() const;
 
   void print() const;
