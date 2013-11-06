@@ -17,9 +17,8 @@
 
 
 #include "types.hh"
-#include "event_scanner.hh"
 #include "event_array.hh"
-#include "action_container.hh"
+#include "leaderboard.hh"
 
 
 #define BUFSIZE 1024
@@ -32,6 +31,19 @@ bool is_call_funcname(char func_name[], ETERM* message);
 int my_listen(int port);
 
 int main(int argc, char **argv) {
+
+  leaderboard lb;
+  lb.print();
+  std::cout  << "loaded" << std::endl;
+  lb.add("martin", 10);
+  
+
+  lb.print();
+
+
+
+
+
   struct in_addr addr;                     /* 32-bit IP number of host */
   int listen;                              /* Listen socket */
   int fd;                                  /* fd to Erlang node */
@@ -48,133 +60,103 @@ int main(int argc, char **argv) {
   char erl_localname[] = "msk-dev";
   char erl_longname[]  = "cnode@msk-dev.local";
    
+ 
+  const unsigned int hour  = 60*60;
+  const unsigned int day   = 24*hour;
+  const unsigned int week  = 7*day;
+  const unsigned int month = 4 *week;
+  std::vector<unsigned> intervals = {10,     20,
+                                     hour,   2*hour,
+                                     day,    2*day,
+                                     week,   2*week,
+                                     month,  2*month};
+  std::reverse(intervals.begin(), intervals.end());
+  std::vector<event_array*> event_arrays;
+  for(unsigned i : intervals) {
+    printf("push back %d \n", i);
+    if(event_arrays.empty()) event_arrays.push_back(new event_array(i));
+    else event_arrays.push_back(new event_array(i, event_arrays.back()));
+  }
+  std::reverse(event_arrays.begin(), event_arrays.end());
+
   erl_init(NULL, 0);
-
+    
   addr.s_addr = inet_addr("127.0.0.1");
-  if (erl_connect_xinit(erl_localname, erl_node, erl_longname, &addr, erl_secret, 0) == -1)
-    erl_err_quit("erl_connect_xinit failed");
-
-  /* Make a listen socket */
-  if ((listen = my_listen(port)) <= 0)
-    erl_err_quit("my_listen failed ( likely unable to connect to socket )");
-
-  if (erl_publish(port) == -1)
-    erl_err_quit("erl_publish failed");
-
-  if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
-    erl_err_quit("erl_accept failed");
-  fprintf(stderr, "Connected to %s\n\r", conn.nodename);
-
-  action_container actions;
-
-  event_array events4(60*60);
-  event_array events2(3, &events4);
-  event_array events1(1, &events2);
-
-
-  for(int i = 0; i != 100000000; i++)
-    events1.event(1);
-
-
-  while (loop) {
-
-    got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
-
-    if (got == ERL_TICK) {
-      /* ignore */
-    } else if (got == ERL_ERROR) {
-      loop = 0;
-    } else {
+ 
+  if (erl_connect_xinit(erl_localname, erl_node, erl_longname, &addr, erl_secret, 0) == -1) erl_err_quit("erl_connect_xinit failed");
+  if ((listen = my_listen(port)) <= 0) erl_err_quit("my_listen failed ( likely unable to connec  t to socket )");
+  if (erl_publish(port) == -1) erl_err_quit("erl_publish failed");
+ 
+  while(true){
+    if ((fd = erl_accept(listen, &conn)) == ERL_ERROR) erl_err_quit("erl_accept failed");
+   
+    while (loop) {
+      got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
+      if (got == ERL_TICK) { /* ignore */ }
+      else if (got == ERL_ERROR) {
+        loop = 0;
+      } else {
       
-      if (emsg.type == ERL_REG_SEND) {
-        // printf("message to handle\n");
-        
-        if(IS_CALL_HANDLE_EVENT(emsg.msg)){
-          ETERM* tuplep, *event_list;
-          tuplep = erl_element(3, emsg.msg);
-          event_list = erl_element(2, tuplep);
-          std::vector< std::string> counters;
-          while(!ERL_IS_NIL(event_list)){
-            unsigned char*  counter = ERL_BIN_PTR(ERL_CONS_HEAD(event_list));
-            printf("%s \n", counter);
-            counters.push_back(std::string(counter, counter + strlen((char*)counter)));
-            event_list = ERL_CONS_TAIL(event_list);
-          }
-          events1.event(1);
-          // Std::cout << "events4 " << std::endl;
-          // events4.print();
-          // char format_str[] = "{cnode, ok}";
-          // resp = erl_format(format_str);
-          // erl_send(fd, fromp, resp);
-          // erl_free_term(fromp); 
-          // erl_free_term(resp); 
-        }
-        else if (IS_CALL_GET_COUNTER(emsg.msg)) {
-          ETERM* resp;
-          ETERM *fromp;
-          fromp = erl_element(2, emsg.msg);
-          // char* counter_identifier;
-          //int c = do_call_handle_get_counter(counter_identifier);
-          int c = 0;
-          char format_str[] = "{cnode, ok}";
+        if (emsg.type == ERL_REG_SEND) {
+          if(IS_CALL_HANDLE_EVENT(emsg.msg)){
+            ETERM* tuplep, *event_list;
 
-          events1.update(time(0));
-          std::cout << "events1 " << std::endl;
+            tuplep     = erl_element(3, emsg.msg);
+            event_list = erl_element(2, tuplep);
           
-          for(auto& x: events1.counters) {
-            std::cout << x.first << ": " << x.second << std::endl;
-          }
-          std::cout << "events2 " << std::endl;
-          // events1.print();
-          for(auto& x: events2.counters) {
-            std::cout << x.first << ": " << x.second << std::endl;
-          }
-           std::cout << "events4 " << std::endl;
-          // events2.print();
-          for(auto& x: events4.counters) {
-            std::cout << x.first << ": " << x.second << std::endl;
-          }
+            std::vector< std::string> counters;
 
-          resp = erl_format(format_str, c);
-          erl_send(fd, fromp, resp);
-          erl_free_term(fromp); 
-          erl_free_term(resp); 
-        }
+            while(!ERL_IS_NIL(event_list)){
+              ETERM* head = ERL_CONS_HEAD(event_list);
+              unsigned char*  counter = ERL_BIN_PTR(head);
+              counters.push_back(std::string(counter, counter + strlen((char*)counter)));
+              std::sort(counters.begin(), counters.end());
+              event_list =  ERL_CONS_TAIL(event_list);
+              //            delete counter;
+            }
+          
+            event_arrays.front()->event(counters);
+          
+            erl_free_compound(tuplep); 
+          }
+          else if (IS_CALL_GET_COUNTER(emsg.msg)) {
+            ETERM* resp;
+            ETERM *fromp;
+            fromp = erl_element(2, emsg.msg);
 
-        // if (strncmp(ERL_ATOM_PTR(fnp), "handle_event", 9) == 0) {
-        //   ETERM *fromp, *tuplep, *fnp, *argp, *resp;
-        //   int res;
-        //   fromp = erl_element(2, emsg.msg);
-        //   tuplep = erl_element(3, emsg.msg);
-        //   fnp = erl_element(1, tuplep);
-        //   argp = erl_element(2, tuplep);
-        //   events.event(ERL_INT_VALUE(argp));
-        //   resp = erl_format("{cnode, ok}");
-        //   erl_send(fd, fromp, resp);
-        //   erl_free_term(fromp); erl_free_term(tuplep);
-        //   erl_free_term(fnp); erl_free_term(argp);
-        // } else if (strncmp(ERL_ATOM_PTR(fnp), "get_counter", 6) == 0) {
-        //   ETERM *fromp, *tuplep, *fnp, *argp, *resp;
-        //   int res;
-        //   fromp = erl_element(2, emsg.msg);
-        //   tuplep = erl_element(3, emsg.msg);
-        //   fnp = erl_element(1, tuplep);
-        //   argp = erl_element(2, tuplep);
-        //   //res = bar(ERL_INT_VALUE(argp));
-        //   resp = erl_format("{undefined}");
-        //   erl_send(fd, fromp, resp);
-        //   erl_free_term(resp);
-        //   erl_free_term(fromp); erl_free_term(tuplep);
-        //   erl_free_term(fnp); erl_free_term(argp);
-        // }           
+            event_arrays.front()->update(time(0));
+
+            ETERM* tuplep, *counter_id;
+            tuplep     = erl_element(3, emsg.msg);
+            counter_id = erl_element(2, tuplep);
+          
+            unsigned char* counter = ERL_BIN_PTR(counter_id);
+            std::string id_str(counter, counter + strlen((char*)counter));
+            
+            ETERM* list = erl_mk_empty_list();
+            for(auto& events : event_arrays) {
+            
+              ETERM* tuple[2];
+              tuple[0] = erl_mk_uint(events->timespan);
+              tuple[1] = erl_mk_ulonglong(events->counters[id_str]);
+              list = erl_cons(erl_mk_tuple(tuple, 2), list);
+            }
+
+            int c = 0;
+            resp = list;
+            erl_send(fd, fromp, resp);
+            erl_free_term(fromp); 
+            erl_free_term(resp); 
+          }
+          erl_free_term(emsg.to); 
+          erl_free_term(emsg.from); 
+          erl_free_term(emsg.msg);
         
-        erl_free_term(emsg.from); 
-        erl_free_term(emsg.msg);
+        }
       }
-    }
-  } /* while */
+    } /* while */
+  }
 }
-
   
 bool is_call_funcname(char func_name[], ETERM* call_term) {
   ETERM  *tuplep = erl_element(3, call_term);

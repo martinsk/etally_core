@@ -26,7 +26,7 @@ LFLAGS =  -lc++  -lerl_interface -lei -lc
 LIBS = -L/usr/local/lib/erlang/lib/erl_interface-3.7.13/lib #
 
 # define the C source files
-SRCS = src/test.cc src/event_scanner.cc src/event_array.cc src/action_container.cc
+SRCS = src/test.cc src/event_array.cc src/leaderboard.cc 
 
 # define the C object files 
 #

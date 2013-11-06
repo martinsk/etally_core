@@ -3,6 +3,7 @@
 
 #include <stdint.h>
 
+#include <string>
 
 typedef uint32_t idx_t;
 typedef uint32_t timestamp_t;
@@ -11,6 +12,10 @@ typedef uint32_t action_t;
 typedef uint32_t counter_idx_t;
 typedef uint32_t counter_t;
 
+
+
+typedef std::string lb_name_t;
+typedef std::string count_name_t;
 
 
 struct event {

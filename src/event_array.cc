@@ -1,21 +1,33 @@
 #include "types.hh"
 #include "event_array.hh"
+#include "leaderboard.hh"
+
+#include <iostream>
+
+std::unordered_map<std::vector<count_name_t>, idx_t, string_vector_hasher>  event_array::encode_map;
+std::unordered_map<idx_t, std::vector<count_name_t> > event_array::decode_map;
+std::unordered_map<idx_t, unsigned long>     event_array::reference_counters;
+std::unordered_set<idx_t>  event_array::unused_idx;
+idx_t  event_array::max_idx = 0;
+
 
 
 event_array::event_array(timestamp_t timespan, event_array* const tail)
   :  data(new struct event[1]),
-     max_size(1),
+     max_size(2),
      size(0),
      back(0),
      front(0),
      timespan(timespan),
      tail(tail){ }
+
 event_array::~event_array() {
   delete[] data;
 }
 
 
 void event_array::event(struct event e) {
+  //  printf("event %d\n", e.event_idx);
   if (size == max_size) {
     // double the array and copy
     struct event* old_data = data;
@@ -31,13 +43,40 @@ void event_array::event(struct event e) {
 
   data[front] = e;
   front++;
+
   front%=max_size;
 
   size++;
 }
 
-void event_array::event(idx_t event_idx, timestamp_t insert_time) {
-  increment_counter(event_idx);
+void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_time) {
+  for(auto s : groups)
+    increment_counter(s);
+
+  int event_idx;
+  if(encode_map.count(groups) == 0) {
+    std::cout << "adding to encode_map" << std::endl;
+    
+    if(unused_idx.empty()){
+      event_idx = max_idx;
+      max_idx++;
+      encode_map[groups] = event_idx;
+      decode_map[event_idx] = groups;
+      //std::cout << "event_idx"   << event_idx << std::endl;
+    }
+    else{
+      event_idx = (*reference_counters.begin()).second;
+      reference_counters.erase(reference_counters.begin());
+      encode_map[groups] = event_idx;
+      //      std::cout << "event_idx"   << event_idx << std::endl;
+      decode_map[event_idx] = groups;
+    }
+  } else{
+    event_idx = (*encode_map.find(groups)).second;
+  }
+  reference_counters[event_idx] ++;
+ 
+  
   timestamp_t now = time(0);
 
   struct event e;
@@ -45,45 +84,54 @@ void event_array::event(idx_t event_idx, timestamp_t insert_time) {
   e.event_idx = event_idx;
  
   event(e);
+
   update(now);  
 }
 
 void event_array::update(timestamp_t now) {
-  if(now == 0)  now = time(0);
-
-  if(back == front) return;
-
   struct event e = data[back];
-  while(back!=front && e.timestamp < now - timespan) {
+
+
+  while(size!=0 && e.timestamp < (now - timespan)) {
     back ++;
     back %= max_size;
     size--;
-    counters[e.event_idx]--;
-    if(counters[e.event_idx] == 0){
-      counters.erase(e.event_idx);
-    }
 
-    if(tail != NULL)
-      tail->event(e);
+    for(auto& s : decode_map[e.event_idx]) {
+      counters[s]--;
+      if(counters[s] == 0){
+        counters.erase(s);
+      }
+    }
+    
+    if(tail) tail->event(e);
+    else {
+      reference_counters[e.event_idx]--;
+      if(reference_counters[e.event_idx] == 0){
+        reference_counters.erase(e.event_idx);
+      }
+    }
     e = data[back];
   }
+  
+  if(tail) tail->update(now);
 
-  if(tail!=NULL) 
-    tail->update(now);
 }
 
-void event_array::increment_counter(idx_t event_idx) {
-  if (counters.count(event_idx) == 0) {
-    counters[event_idx] = 0;
+void event_array::increment_counter(count_name_t c) {
+  if (counters.count(c) == 0) {
+    counters[c] = 0;
   }
-  counters[event_idx] ++;
-  if(tail != NULL)
-    tail->increment_counter(event_idx);
+  counters[c] ++;
+  if(tail)
+    tail->increment_counter(c);
 }
   
 int event_array::length() const {
   return size;
 }
+
+
 
 void event_array::print() const {
   for(uint32_t i = 0; i != size; i++) {
