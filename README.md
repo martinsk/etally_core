@@ -1,5 +1,7 @@
-event_server
+eTally_core 
 ============
-Simple eventserver
 
-event comes in, answers question howmany events in the last N seconts, supports multible eventtypes, multible windowssizes, and complex derived sums
+The core service behind tally, highly efficient service for keeping a track of event counts, and leaderboards.
+
+
+Interact using eTally
