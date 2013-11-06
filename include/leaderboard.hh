@@ -23,6 +23,9 @@ public:
   void update_down(count_name_t elm, long score);  
 
   void print();
-  };
+
+private:
+  void swap(count_name_t n0, count_name_t n1);
+};
 
 #endif // LEADERBOARD_HH

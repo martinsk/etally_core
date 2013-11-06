@@ -35,7 +35,9 @@ int main(int argc, char **argv) {
   leaderboard lb;
   lb.print();
   std::cout  << "loaded" << std::endl;
-  lb.add("martin", 10);
+  lb.add("Martin", 10);
+  lb.add("Maja", 20);
+  lb.update_up("Martin", 21);
   
 
   lb.print();
