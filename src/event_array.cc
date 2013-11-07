@@ -10,6 +10,8 @@ std::unordered_map<idx_t, unsigned long>     event_array::reference_counters;
 std::unordered_set<idx_t>  event_array::unused_idx;
 idx_t  event_array::max_idx = 0;
 
+lb_double_map_t event_array::lb_map;
+lb_idx_t event_array::lb_lookup_map;
 
 
 event_array::event_array(timestamp_t timespan, event_array* const tail)
@@ -53,26 +55,18 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
   for(auto s : groups)
     increment_counter(s);
 
+
   int event_idx;
   if(encode_map.count(groups) == 0) {
     std::cout << "adding to encode_map" << std::endl;
+
+    event_idx = max_idx;
+    max_idx++;
+    encode_map[groups] = event_idx;
+    decode_map[event_idx] = groups;
     
-    if(unused_idx.empty()){
-      event_idx = max_idx;
-      max_idx++;
-      encode_map[groups] = event_idx;
-      decode_map[event_idx] = groups;
-      //std::cout << "event_idx"   << event_idx << std::endl;
-    }
-    else{
-      event_idx = (*reference_counters.begin()).second;
-      reference_counters.erase(reference_counters.begin());
-      encode_map[groups] = event_idx;
-      //      std::cout << "event_idx"   << event_idx << std::endl;
-      decode_map[event_idx] = groups;
-    }
   } else{
-    event_idx = (*encode_map.find(groups)).second;
+    event_idx = encode_map.find(groups)->second;
   }
   reference_counters[event_idx] ++;
  
@@ -99,8 +93,15 @@ void event_array::update(timestamp_t now) {
 
     for(auto& s : decode_map[e.event_idx]) {
       counters[s]--;
+      for(auto lb : event_array::lb_lookup_map[s]){
+        event_array::lb_map[lb][timespan]->update_down(s, counters[s]);
+      }
       if(counters[s] == 0){
         counters.erase(s);
+        for(auto lb : event_array::lb_lookup_map[s]){
+          event_array::lb_map[lb][timespan]->remove(s);
+          event_array::lb_lookup_map[s].erase(lb);
+        }
       }
     }
     
@@ -119,12 +120,18 @@ void event_array::update(timestamp_t now) {
 }
 
 void event_array::increment_counter(count_name_t c) {
+  
   if (counters.count(c) == 0) {
     counters[c] = 0;
   }
   counters[c] ++;
-  if(tail)
-    tail->increment_counter(c);
+  
+  for(auto lb : event_array::lb_lookup_map[c]) {
+    event_array::lb_map[lb][timespan]->add(c, counters[c]);
+  }
+  
+  std::cout  << "increment : " << c << " to " <<  counters[c] << std::endl;
+  if(tail) tail->increment_counter(c);
 }
   
 int event_array::length() const {

@@ -5,17 +5,25 @@
 
 void
 leaderboard::add(std::string elm, long score) {
-  board.push_back(std::make_pair(elm, score));
-  map[elm] = board.size() -1;
-  update_up(elm, score);
+  if(map.count(elm) == 0){
+    board.push_back(std::make_pair(elm, score));
+    map[elm] = board.size() -1;
+    update_up(elm, score);
+  }
+  else {
+    long old_score = board[map[elm]].second;
+    if(score > old_score) update_up(elm, score);
+    else update_down(elm,score);
+  }
 }
 
 void 
 leaderboard::remove(std::string elm){
-  idx_t idx      = map[elm];
-  board[idx]     = board.back();
+  auto idx = map[elm]; 
+  swap(elm, board.back().first);
   board.pop_back();
-  update_down(board[idx].first, board[idx].second);
+  if (board.size() != 0)
+    update_down(board[idx].first, board[idx].second);
 }
 
 

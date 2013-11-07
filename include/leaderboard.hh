@@ -9,7 +9,7 @@
 class event_array;
 
 class leaderboard{
-protected:
+public:
   std::vector<std::pair<count_name_t, unsigned long> > board;
 
 private:
