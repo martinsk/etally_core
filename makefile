@@ -39,7 +39,7 @@ SRCS = src/test.cc src/event_array.cc src/leaderboard.cc
 OBJS = $(SRCS:.cc=.o)
 
 # define the executable file 
-MAIN = erl_stats_server
+MAIN = etally_srv
 
 #
 # The following part of the makefile is generic; it can be used to 

@@ -37,9 +37,51 @@ std::string ch2str(unsigned char * ch_str) {
   return std::string(ch_str, ch_str + strlen((char*)ch_str));
 }
 
+std::ostream& operator<<(std::ostream& out,  const struct event e)  {
+  out << "{" << e.event_idx << ", " << e.timestamp << " } ";
+  return out;
+}
+
+std::ostream& operator<<(std::ostream& out,  const circular_queue<struct event>& queue)  {
+  for(int i = 0; i != queue.size; i ++){ 
+    int idx = (queue.back_p - queue.size + i)%queue.container_size;
+    out << queue.data[idx] <<" ";
+  }
+  return out;
+}
+
+
+std::ostream& operator<<(std::ostream& out,  const circular_queue<int>& queue)  {
+  for(int i = 0; i != queue.size; i ++){ 
+    int idx = (queue.back_p - queue.size + i)%queue.container_size;
+    out << queue.data[idx] <<" ";
+  }
+  return out;
+}
+
+
+
+
+
 
 
 int main(int argc, char **argv) {
+
+
+  circular_queue<int> q;
+
+  q.enqueue(1);
+  std::cout << q << std::endl;
+  q.enqueue(2);
+  std::cout << q << std::endl;
+  q.enqueue(3);
+  std::cout << q << std::endl;
+  q.enqueue(4);
+  std::cout << q << std::endl;
+  std::cout << q.front() << std::endl;
+  q.dequeue();
+std::cout << q.front() << std::endl;
+  
 
   // tally_core ip localname longname secret
   if(argc != 5) {
@@ -91,18 +133,21 @@ int main(int argc, char **argv) {
  
   if (erl_connect_xinit(erl_localname, erl_node, erl_longname, &addr, erl_secret, 0) == -1)
     erl_err_quit("erl_connect_xinit failed");
-    
+
   if ((listen = my_listen(port)) <= 0)
     erl_err_quit("my_listen failed ( likely unable to connect to socket )");
   
   if (erl_publish(port) == -1)
     erl_err_quit("erl_publish failed");
-
+  
   if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
     erl_err_quit("erl_accept failed");
   
+  
   while(true){
       
+    loop = 1;
+
     while (loop) {
       // update the datastructure
       event_arrays.front()->update( time(0) );
@@ -110,7 +155,7 @@ int main(int argc, char **argv) {
       got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
       if (got == ERL_TICK) { /* ignore */ }
       else if (got == ERL_ERROR) {
-        loop = 0;
+        //      loop = 0;
       } else {
       
         if (emsg.type == ERL_REG_SEND) {
@@ -130,6 +175,11 @@ int main(int argc, char **argv) {
               event_list =  ERL_CONS_TAIL(event_list);
             }
 
+
+            for(auto& events : event_arrays) {
+              events->print();
+            }
+
             while(!ERL_IS_NIL(binding_list)){
               ETERM* head = ERL_CONS_HEAD(binding_list);
               std::string counter_id = ch2str(ERL_BIN_PTR(erl_element(1, head)));
@@ -146,7 +196,7 @@ int main(int argc, char **argv) {
               binding_list =  ERL_CONS_TAIL(binding_list);
             }
             
-            event_arrays.front()->event(counters);
+            event_arrays.front()->event(counters, time(0));
             erl_free_compound(tuplep); 
           }
           else if (IS_CALL_GET_COUNTER(emsg.msg)) {

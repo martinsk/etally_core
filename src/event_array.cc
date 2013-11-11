@@ -1,4 +1,5 @@
 #include "types.hh"
+#include "circular_queue.hh"
 #include "event_array.hh"
 #include "leaderboard.hh"
 
@@ -15,40 +16,16 @@ lb_idx_t event_array::lb_lookup_map;
 
 
 event_array::event_array(timestamp_t timespan, event_array* const tail)
-  :  data(new struct event[1]),
-     max_size(2),
-     size(0),
-     back(0),
-     front(0),
-     timespan(timespan),
+  :  timespan(timespan),
      tail(tail){ }
 
 event_array::~event_array() {
-  delete[] data;
+  
 }
 
 
 void event_array::event(struct event e) {
-  //  printf("event %d\n", e.event_idx);
-  if (size == max_size) {
-    // double the array and copy
-    struct event* old_data = data;
-    max_size *= 2;
-    data = new struct event[max_size];
-    for(uint32_t i = 0; i != size; i++) {
-      data[i] = old_data[(back + i)%size];
-    }
-    back  = 0;
-    front = size;    
-    delete[] old_data;
-  }
-
-  data[front] = e;
-  front++;
-
-  front%=max_size;
-
-  size++;
+  queue.enqueue(e);
 }
 
 void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_time) {
@@ -61,8 +38,10 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
     std::cout << "adding to encode_map" << std::endl;
 
     event_idx = max_idx;
+    std::cout << "event_idx : " << event_idx << std::endl;
+
     max_idx++;
-    encode_map[groups] = event_idx;
+    encode_map[groups]    = event_idx;
     decode_map[event_idx] = groups;
     
   } else{
@@ -76,6 +55,10 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
   struct event e;
   e.timestamp = (insert_time == 0)? now: insert_time;
   e.event_idx = event_idx;
+
+  std::cout << " - event_idx : " << e.event_idx << std::endl;
+  std::cout << " - timestamp : " << e.timestamp << std::endl;
+
  
   event(e);
 
@@ -83,19 +66,20 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
 }
 
 void event_array::update(timestamp_t now) {
-  struct event e = data[back];
+  
+  struct event e = queue.front();
 
 
-  while(size!=0 && e.timestamp < (now - timespan)) {
-    back ++;
-    back %= max_size;
-    size--;
-
+  while( !queue.empty() && e.timestamp < (now - timespan)) {
+    queue.dequeue();
+    
     for(auto& s : decode_map[e.event_idx]) {
       counters[s]--;
+
       for(auto lb : event_array::lb_lookup_map[s]){
         event_array::lb_map[lb][timespan]->update_down(s, counters[s]);
       }
+      
       if(counters[s] == 0){
         counters.erase(s);
         for(auto lb : event_array::lb_lookup_map[s]){
@@ -112,9 +96,9 @@ void event_array::update(timestamp_t now) {
         reference_counters.erase(e.event_idx);
       }
     }
-    e = data[back];
-  }
-  
+    e = queue.front();
+  } 
+
   if(tail) tail->update(now);
 
 }
@@ -134,16 +118,17 @@ void event_array::increment_counter(count_name_t c) {
   if(tail) tail->increment_counter(c);
 }
   
-int event_array::length() const {
-  return size;
+unsigned long event_array::length() const {
+  return queue.length();
 }
 
 
 
 void event_array::print() const {
-  for(uint32_t i = 0; i != size; i++) {
-    struct event& e = data[(back + i)%max_size];
-    printf("{%d, %d}, ", e.timestamp, e.event_idx);
-  }
-  printf("\n");
+  std::cout << queue << std::endl;
+  
 }
+
+
+
+

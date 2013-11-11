@@ -6,6 +6,8 @@
 #include <unordered_set>
 #include <unordered_map>
 
+#include "circular_queue.hh"
+
 #include "leaderboard.hh"
 
 class leaderboard;
@@ -27,11 +29,7 @@ public:
 
 class event_array {
 private:
-  struct event* data;
-  uint32_t      max_size;
-  uint32_t      size;
-  idx_t         back;
-  idx_t         front;
+  circular_queue<struct event> queue;
 public:
   timestamp_t   timespan;
   event_array* const  tail;
@@ -57,7 +55,7 @@ public:
   void update(timestamp_t now);
   void increment_counter(std::string c);
 
-  int length() const;
+  unsigned long length() const;
 
   void print() const;
 
