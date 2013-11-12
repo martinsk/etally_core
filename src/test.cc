@@ -177,6 +177,7 @@ std::cout << q.front() << std::endl;
 
 
             for(auto& events : event_arrays) {
+              std::cout << "timespan : " << events->timespan << std::endl; 
               events->print();
             }
 
@@ -222,9 +223,14 @@ std::cout << q.front() << std::endl;
               list = erl_cons(erl_mk_tuple(tuple, 2), list);
             }
 
-            erl_send(fd, fromp,list);
+            ETERM* tuple[2];
+            tuple[0] = erl_mk_atom("tally");
+            tuple[1] = list;
+            ETERM* resp = erl_mk_tuple(tuple, 2);
+                
+            erl_send(fd, fromp, resp);
             erl_free_term(fromp); 
-            erl_free_term(list); 
+            erl_free_term(resp); 
           }
           else if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
             ETERM *fromp  = erl_element(2, emsg.msg);
@@ -235,14 +241,20 @@ std::cout << q.front() << std::endl;
             if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].size() != 0){
               for(auto entry : event_array::lb_map[lb_id][lb_dim]->board) {
                 ETERM* tuple[2];
-                tuple[0] = erl_mk_binary(entry.first.c_str(), entry.first.length());
-                tuple[1] = erl_mk_uint(entry.second);
+                tuple[0] = erl_mk_binary(entry.second.c_str(), entry.second.length());
+                tuple[1] = erl_mk_uint(entry.first);
                 list = erl_cons(erl_mk_tuple(tuple, 2), list);
               }
             }
-            erl_send(fd, fromp, list);
+
+            ETERM* tuple[2];
+            tuple[0] = erl_mk_atom("tally");
+            tuple[1] = list;
+            ETERM* resp = erl_mk_tuple(tuple, 2);
+
+            erl_send(fd, fromp, resp);
             erl_free_term(fromp); 
-            erl_free_term(list); 
+            erl_free_compound(resp); 
           }
 
           else if (IS_CALL_LIST_LEADERBOARDS(emsg.msg)) {
@@ -256,10 +268,14 @@ std::cout << q.front() << std::endl;
                 list = erl_cons(erl_mk_tuple(tuple, 2), list);
               }
             }
+            ETERM* tuple[2];
+            tuple[0] = erl_mk_atom("tally");
+            tuple[1] = list;
+            ETERM* resp = erl_mk_tuple(tuple, 2);
             
-            erl_send(fd, fromp, list);
+            erl_send(fd, fromp, resp);
             erl_free_term(fromp); 
-            erl_free_compound(list); 
+            erl_free_compound(resp); 
           }
 
           erl_free_term(emsg.to); 

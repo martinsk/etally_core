@@ -76,8 +76,9 @@ void event_array::update(timestamp_t now) {
     for(auto& s : decode_map[e.event_idx]) {
       counters[s]--;
 
+      
       for(auto lb : event_array::lb_lookup_map[s]){
-        event_array::lb_map[lb][timespan]->update_down(s, counters[s]);
+        event_array::lb_map[lb][timespan]->add(s, counters[s]);
       }
       
       if(counters[s] == 0){

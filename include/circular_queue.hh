@@ -31,6 +31,7 @@ private:
 
 
 public:
+
   friend std::ostream& operator<<(std::ostream& out,  const circular_queue<Ty>& queue) ;
 
 };
