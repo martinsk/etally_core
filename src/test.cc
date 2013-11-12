@@ -33,8 +33,9 @@ bool is_call_funcname(std::string func_name, ETERM* message);
 int my_listen(int port);
 
 
-std::string ch2str(unsigned char * ch_str) {
-  return std::string(ch_str, ch_str + strlen((char*)ch_str));
+std::string term2str(ETERM* ch_str) {
+  unsigned char* str = ERL_BIN_PTR(ch_str);
+  return std::string(str, str +  ERL_BIN_SIZE(ch_str));
 }
 
 std::ostream& operator<<(std::ostream& out,  const struct event e)  {
@@ -169,24 +170,23 @@ std::cout << q.front() << std::endl;
             std::vector< std::string> counters;
             while(!ERL_IS_NIL(event_list)){
               ETERM* head = ERL_CONS_HEAD(event_list);
-              unsigned char*  counter = ERL_BIN_PTR(head);
-              counters.push_back(ch2str(counter));
+              counters.push_back(term2str(head));
               std::sort(counters.begin(), counters.end());
               event_list =  ERL_CONS_TAIL(event_list);
             }
 
 
-            for(auto& events : event_arrays) {
-              std::cout << "timespan : " << events->timespan << std::endl; 
-              events->print();
-            }
+            // for(auto& events : event_arrays) {
+            //   std::cout << "timespan : " << events->timespan << std::endl; 
+            //   events->print();
+            // }
 
             while(!ERL_IS_NIL(binding_list)){
               ETERM* head = ERL_CONS_HEAD(binding_list);
-              std::string counter_id = ch2str(ERL_BIN_PTR(erl_element(1, head)));
-              std::string lb_id      = ch2str(ERL_BIN_PTR(erl_element(2, head)));
+              std::string counter_id = term2str(erl_element(1, head));
+              std::string lb_id      = term2str(erl_element(2, head));
 
-              std::cout << "leaderboard bind : "<< counter_id << " to " << lb_id << std::endl;
+              // std::cout << "leaderboard bind : "<< counter_id << " to " << lb_id << std::endl;
 
               if(event_array::lb_map.count(lb_id) == 0) {
                 for(auto i : intervals) {
@@ -208,7 +208,7 @@ std::cout << q.front() << std::endl;
             ETERM* tuplep;
             tuplep = erl_element(3, emsg.msg);
             
-            std::string id_str = ch2str(ERL_BIN_PTR(erl_element(2, tuplep)));
+            std::string id_str = term2str(erl_element(2, tuplep));
             
             ETERM* list = erl_mk_empty_list();
             for(auto& events : event_arrays) {
@@ -216,9 +216,9 @@ std::cout << q.front() << std::endl;
               ETERM* tuple[2];
               tuple[0] = erl_mk_uint(events->timespan);
               
-              for(auto s : events->counters){
-                std::cout << s.first << " : " << s.second << std::endl; 
-              }
+              // for(auto s : events->counters){
+              //   std::cout << s.first << " : " << s.second << std::endl; 
+              // }
               tuple[1] = erl_mk_ulonglong(events->counters[id_str]);
               list = erl_cons(erl_mk_tuple(tuple, 2), list);
             }
@@ -235,14 +235,15 @@ std::cout << q.front() << std::endl;
           else if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
             ETERM *fromp  = erl_element(2, emsg.msg);
             ETERM* tuplep = erl_element(3, emsg.msg);
-            std::string  lb_id  = ch2str(ERL_BIN_PTR(erl_element(2, tuplep)));
+            std::string  lb_id  = term2str(erl_element(2, tuplep));
             unsigned int lb_dim = ERL_INT_UVALUE(erl_element(3, tuplep));
             ETERM* list = erl_mk_empty_list();
             if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].size() != 0){
-              for(auto entry : event_array::lb_map[lb_id][lb_dim]->board) {
+              for(auto entry = event_array::lb_map[lb_id][lb_dim]->board.begin(); 
+                  entry != event_array::lb_map[lb_id][lb_dim]->board.end(); entry++) {
                 ETERM* tuple[2];
-                tuple[0] = erl_mk_binary(entry.second.c_str(), entry.second.length());
-                tuple[1] = erl_mk_uint(entry.first);
+                tuple[0] = erl_mk_binary(entry->second.c_str(), entry->second.length());
+                tuple[1] = erl_mk_uint(entry->first);
                 list = erl_cons(erl_mk_tuple(tuple, 2), list);
               }
             }

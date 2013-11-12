@@ -35,10 +35,10 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
 
   int event_idx;
   if(encode_map.count(groups) == 0) {
-    std::cout << "adding to encode_map" << std::endl;
+    // std::cout << "adding to encode_map" << std::endl;
 
     event_idx = max_idx;
-    std::cout << "event_idx : " << event_idx << std::endl;
+    // std::cout << "event_idx : " << event_idx << std::endl;
 
     max_idx++;
     encode_map[groups]    = event_idx;
@@ -56,8 +56,8 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
   e.timestamp = (insert_time == 0)? now: insert_time;
   e.event_idx = event_idx;
 
-  std::cout << " - event_idx : " << e.event_idx << std::endl;
-  std::cout << " - timestamp : " << e.timestamp << std::endl;
+  // std::cout << " - event_idx : " << e.event_idx << std::endl;
+  // std::cout << " - timestamp : " << e.timestamp << std::endl;
 
  
   event(e);
@@ -115,7 +115,7 @@ void event_array::increment_counter(count_name_t c) {
     event_array::lb_map[lb][timespan]->add(c, counters[c]);
   }
   
-  std::cout  << "increment : " << c << " to " <<  counters[c] << std::endl;
+  // std::cout  << "increment : " << c << " to " <<  counters[c] << std::endl;
   if(tail) tail->increment_counter(c);
 }
   

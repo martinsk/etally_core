@@ -17,7 +17,7 @@ void
 leaderboard::remove(std::string elm){
   unsigned long old_score = score_map[elm];
   board.erase(std::make_pair(old_score, elm));
-  print();
+  //  print();
 }
 
 
