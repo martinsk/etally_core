@@ -69,19 +69,6 @@ std::ostream& operator<<(std::ostream& out,  const circular_queue<int>& queue)  
 int main(int argc, char **argv) {
 
 
-  circular_queue<int> q;
-
-  q.enqueue(1);
-  std::cout << q << std::endl;
-  q.enqueue(2);
-  std::cout << q << std::endl;
-  q.enqueue(3);
-  std::cout << q << std::endl;
-  q.enqueue(4);
-  std::cout << q << std::endl;
-  std::cout << q.front() << std::endl;
-  q.dequeue();
-std::cout << q.front() << std::endl;
   
 
   // tally_core ip localname longname secret
@@ -122,7 +109,6 @@ std::cout << q.front() << std::endl;
   std::reverse(intervals.begin(), intervals.end());
   std::vector<event_array*> event_arrays;
   for(unsigned i : intervals) {
-    printf("push back %d \n", i);
     if(event_arrays.empty()) event_arrays.push_back(new event_array(i));
     else event_arrays.push_back(new event_array(i, event_arrays.back()));
   }
