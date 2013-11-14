@@ -51,7 +51,7 @@ public:
   std::unordered_map<std::string, unsigned long> counters;
 
   void event(struct event e);
-  void event(std::vector<count_name_t> groups, timestamp_t insert_time = 0);
+  void event(std::vector<count_name_t> groups, timestamp_t insert_time);
   void update(timestamp_t now);
   void increment_counter(std::string c);
 

@@ -25,7 +25,7 @@
 
 bool is_call_funcname(std::string func_name, ETERM* message);
 #define IS_CALL_HANDLE_EVENT(X)      (is_call_funcname("event", X))
-#define IS_CALL_HANDLE_EVENT_TZ(X)      (is_call_funcname("event_tz", X))
+#define IS_CALL_HANDLE_EVENT_TZ(X)   (is_call_funcname("event_tz", X))
 #define IS_CALL_GET_COUNTER(X)       (is_call_funcname("get_counter", X))
 #define IS_CALL_GET_LEADERBOARD(X)   (is_call_funcname("get_leaderboard", X))
 #define IS_CALL_LIST_LEADERBOARDS(X) (is_call_funcname("list_leaderboards", X))
@@ -78,7 +78,27 @@ int main(int argc, char **argv) {
     std::cout << "example: ./etally_srv \"127.0.0.1\" \"msk-dev\" \"tally@msk-dev.local\" \"secretcookie\"" << std::endl;
   }
 
-  
+
+
+
+  /// some testing of the event_array
+  // event_array ea2(20);
+  // event_array ea1(10,&ea2);
+
+  // std::vector<std::string> cc = {"this"};
+
+  // time_t now = time(0);
+  // for(int i = 10; i != 0; i--){
+  //   ea1.event(cc, now -i);
+  //   ea1.print();
+  //   std::cout << ea1.queue.front().timestamp << std::endl;
+  //  }
+
+
+
+
+
+
 
 
   struct in_addr addr;                     /* 32-bit IP number of host */
@@ -97,8 +117,7 @@ int main(int argc, char **argv) {
   char *erl_localname = argv[2];
   char *erl_longname  = argv[3];
    
- 
-  const unsigned int hour  = 60*60;
+   const unsigned int hour  = 60*60;
   const unsigned int day   = 24*hour;
   const unsigned int week  = 7*day;
   const unsigned int month = 4 *week;
@@ -132,9 +151,7 @@ int main(int argc, char **argv) {
   if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
     erl_err_quit("erl_accept failed");
   
-  
   while(true){
-      
     loop = 1;
 
     while (loop) {
@@ -152,6 +169,7 @@ int main(int argc, char **argv) {
             ETERM* tuplep, *event_list, *binding_list;
 
             tuplep       = erl_element(3, emsg.msg);
+
             event_list   = erl_element(2, tuplep);
             binding_list = erl_element(3, tuplep);
 
@@ -159,17 +177,14 @@ int main(int argc, char **argv) {
             while(!ERL_IS_NIL(event_list)){
               ETERM* head = ERL_CONS_HEAD(event_list);
               counters.push_back(term2str(head));
-              std::sort(counters.begin(), counters.end());
               event_list =  ERL_CONS_TAIL(event_list);
             }
-
-
+            std::sort(counters.begin(), counters.end());
+              
             while(!ERL_IS_NIL(binding_list)){
               ETERM* head = ERL_CONS_HEAD(binding_list);
               std::string counter_id = term2str(erl_element(1, head));
               std::string lb_id      = term2str(erl_element(2, head));
-
-              // std::cout << "leaderboard bind : "<< counter_id << " to " << lb_id << std::endl;
 
               if(event_array::lb_map.count(lb_id) == 0) {
                 for(auto i : intervals) {
@@ -187,25 +202,24 @@ int main(int argc, char **argv) {
             ETERM* tuplep, *event_list, *binding_list, *tz;
            
             tuplep       = erl_element(4, emsg.msg);
+
             event_list   = erl_element(2, tuplep);
             binding_list = erl_element(3, tuplep);
             tz           = erl_element(4, tuplep);
 
             std::vector< std::string> counters;
-            while(!ERL_IS_NIL(event_list)){
+            while( !ERL_IS_NIL(event_list) ) {
               ETERM* head = ERL_CONS_HEAD(event_list);
               counters.push_back(term2str(head));
-              std::sort(counters.begin(), counters.end());
-              event_list =  ERL_CONS_TAIL(event_list);
+              event_list = ERL_CONS_TAIL(event_list);
             }
+            std::sort(counters.begin(), counters.end());
 
             while(!ERL_IS_NIL(binding_list)){
               ETERM* head = ERL_CONS_HEAD(binding_list);
               std::string counter_id = term2str(erl_element(1, head));
               std::string lb_id      = term2str(erl_element(2, head));
               
-              // std::cout << "leaderboard bind : "<< counter_id << " to " << lb_id << std::endl;
-
               if(event_array::lb_map.count(lb_id) == 0) {
                 for(auto i : intervals) {
                   event_array::lb_map[lb_id][i] = new leaderboard;
@@ -253,12 +267,15 @@ int main(int argc, char **argv) {
             ETERM* list = erl_mk_empty_list();
 
             if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].size() != 0){
+
               auto& board = event_array::lb_map[lb_id][lb_dim]->board;
-              for(auto entry = board.begin(); entry != board.end(); entry++) {
+              int count = 0;
+              // std::cout << std::endl;
+              for(auto entry = board.begin(); (entry != board.end()) && (count != 10); entry++, count ++) {
                 ETERM* tuple[2];
                 tuple[0] = erl_mk_binary(entry->second.c_str(), entry->second.length());
-                tuple[1] = erl_mk_uint(entry->first);
-                
+                // std::cout << entry->second << ": " << entry->first << std::endl; 
+                tuple[1] = erl_mk_uint(- entry->first);
                 list = erl_cons(erl_mk_tuple(tuple, 2), list);
               }
             }

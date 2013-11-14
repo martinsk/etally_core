@@ -10,13 +10,13 @@ leaderboard::add(std::string elm, long score) {
   }
 
   score_map[elm] = score;
-  board.insert(std::make_pair(score, elm));
+  board.insert(std::make_pair(-score, elm));
 }
 
 void 
 leaderboard::remove(std::string elm){
   unsigned long old_score = score_map[elm];
-  board.erase(std::make_pair(old_score, elm));
+  board.erase(std::make_pair(-old_score, elm));
   //  print();
 }
 

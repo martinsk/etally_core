@@ -1,6 +1,9 @@
 #ifndef CIRCULAR_QUEUE_HH
 #define CIRCULAR_QUEUE_HH
 
+
+#include <iostream>
+
 template<typename Ty>
 class circular_queue {
 private:
@@ -22,13 +25,12 @@ public:
   void dequeue();
 
   unsigned int long length() const {return size; };
-  bool empty() {return (size == 0); }
+  bool empty() const {return (size == 0); }
 
 private:
 
-  bool is_full() {return size == container_size;}
+  bool is_full() const {return size == container_size;}
   void double_container();
-
 
 public:
 
@@ -96,9 +98,11 @@ void circular_queue<Ty>::double_container()  {
   container_size *= 2;
   data = new Ty[container_size];
   for(int i = 0; i != size; i++){
-    data[i] = old[(back_p - i) % size];
-  }
+    int idx = back_p - size;
 
+    data[i] = old[ (idx + i) % size];
+  }
+  
   back_p = size;
   delete[] old;
 }
