@@ -26,7 +26,7 @@ LFLAGS =  -lc++  -lerl_interface -lei -lc
 LIBS = -L/usr/local/lib/erlang/lib/erl_interface-3.7.13/lib #
 
 # define the C source files
-SRCS = src/test.cc src/event_array.cc src/leaderboard.cc 
+SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc 
 
 # define the C object files 
 #
@@ -50,7 +50,7 @@ MAIN = etally_srv
 .PHONY: depend clean
 
 all: $(MAIN)
-	@echo  Simple compiler named mycc has been compiled
+	@echo  Compiling tally_srv complete 
 
 $(MAIN): $(OBJS) 
 	$(CC) $(CFLAGS) $(INCLUDES) -o $(MAIN) $(OBJS) $(LFLAGS) $(LIBS)

@@ -74,7 +74,8 @@ int main(int argc, char **argv) {
 
   // tally_core ip localname longname secret
   if(argc != 5) {
-    std::cout << "usage: ./tally_core <ip> <localname> <longname> <cookie>" << std::endl;
+    std::cout << "usage: ./tally_srv <ip> <localname> <longname> <cookie>" << std::endl;
+    std::cout << "example: ./etally_srv \"127.0.0.1\" \"msk-dev\" \"tally@msk-dev.local\" \"secretcookie\"" << std::endl;
   }
 
   
@@ -109,9 +110,9 @@ int main(int argc, char **argv) {
 
   std::reverse(intervals.begin(), intervals.end());
   std::vector<event_array*> event_arrays;
-  for(unsigned i : intervals) {
-    if(event_arrays.empty()) event_arrays.push_back(new event_array(i));
-    else event_arrays.push_back(new event_array(i, event_arrays.back()));
+  for(auto i = intervals.begin(); i != intervals.end(); i++) {
+    if(event_arrays.empty()) event_arrays.push_back(new event_array(*i));
+    else event_arrays.push_back(new event_array(*i, event_arrays.back()));
   }
   std::reverse(event_arrays.begin(), event_arrays.end());
 
