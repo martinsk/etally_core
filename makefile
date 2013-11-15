@@ -30,7 +30,7 @@ endif
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
 ifeq ($(UNAME_S),Linux)
-LFLAGS = -lerl_interface -lei -lnsl
+LFLAGS = -lerl_interface -lei -lnsl  -lc
 endif
 ifeq ($(UNAME_S),Darwin)
 LFLAGS = -lc++  -lerl_interface -lei -lc 
