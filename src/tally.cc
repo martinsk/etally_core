@@ -11,6 +11,7 @@
 #include "erl_interface.h"
 #include "ei.h"
 
+#include <algorithm>
 #include <iostream>
 #include <queue>  
 #include <string>
