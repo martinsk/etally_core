@@ -29,12 +29,16 @@ endif
 # define library paths in addition to /usr/lib
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
-LFLAGS =  -lc++  -lerl_interface -lei -lc
+ifeq ($(UNAME_S),Linux)
+LFLAGS = -lc++  -lerl_interface -lei -lc 
+endif
+ifeq ($(UNAME_S),Darwin)
+LFLAGS = -lerl_interface -lei -lsocket -lnsl
+endif
 
 # define any libraries to link into executable:
 #   if I want to link in libraries (libx.so or libx.a) I use the -llibname 
 #   option, something like (this will link in libmylib.so and libm.so:
-UNAME_S := $(shell uname -s)
   ifeq ($(UNAME_S),Linux)
     LIBS = -L/usr/lib/erlang/usr/lib#
   endif
