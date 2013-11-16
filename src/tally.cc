@@ -62,46 +62,15 @@ std::ostream& operator<<(std::ostream& out,  const circular_queue<int>& queue)  
   return out;
 }
 
-
-
-
-
-
-
 int main(int argc, char **argv) {
-
-
-  
 
   // tally_core ip localname longname secret
   if(argc != 5) {
     std::cout << "usage: ./tally_srv <ip> <localname> <longname> <cookie>" << std::endl;
     std::cout << "example: ./etally_srv \"127.0.0.1\" \"msk-dev\" \"tally@msk-dev.local\" \"secretcookie\"" << std::endl;
+    return -1;
   }
-
-
-
-
-  /// some testing of the event_array
-  // event_array ea2(20);
-  // event_array ea1(10,&ea2);
-
-  // std::vector<std::string> cc = {"this"};
-
-  // time_t now = time(0);
-  // for(int i = 10; i != 0; i--){
-  //   ea1.event(cc, now -i);
-  //   ea1.print();
-  //   std::cout << ea1.queue.front().timestamp << std::endl;
-  //  }
-
-
-
-
-
-
-
-
+  
   struct in_addr addr;                     /* 32-bit IP number of host */
   int listen;                              /* Listen socket */
   int fd;                                  /* fd to Erlang node */
@@ -118,7 +87,7 @@ int main(int argc, char **argv) {
   char *erl_localname = argv[2];
   char *erl_longname  = argv[3];
    
-   const unsigned int hour  = 60*60;
+  const unsigned int hour  = 60*60;
   const unsigned int day   = 24*hour;
   const unsigned int week  = 7*day;
   const unsigned int month = 4 *week;

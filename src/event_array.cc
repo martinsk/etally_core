@@ -55,10 +55,6 @@ void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_tim
   struct event e;
   e.timestamp = (insert_time == 0)? now: insert_time;
   e.event_idx = event_idx;
-
-  // std::cout << " - event_idx : " << e.event_idx << std::endl;
-  // std::cout << " - timestamp : " << e.timestamp << std::endl;
-
  
   event(e);
 
@@ -76,7 +72,6 @@ void event_array::update(timestamp_t now) {
     for(auto& s : decode_map[e.event_idx]) {
       counters[s]--;
 
-      
       for(auto lb : event_array::lb_lookup_map[s]){
         event_array::lb_map[lb][timespan]->add(s, counters[s]);
       }
@@ -115,7 +110,6 @@ void event_array::increment_counter(count_name_t c) {
     event_array::lb_map[lb][timespan]->add(c, counters[c]);
   }
   
-  // std::cout  << "increment : " << c << " to " <<  counters[c] << std::endl;
   if(tail) tail->increment_counter(c);
 }
   
