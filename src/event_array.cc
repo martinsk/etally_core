@@ -80,8 +80,8 @@ void event_array::update(timestamp_t now) {
         counters.erase(s);
         for(auto lb : event_array::lb_lookup_map[s]){
           event_array::lb_map[lb][timespan]->remove(s);
-          event_array::lb_lookup_map[s].erase(lb);
         }
+        event_array::lb_lookup_map[s].erase(lb);
       }
     }
     
