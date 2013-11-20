@@ -138,9 +138,10 @@ int main(int argc, char **argv) {
       
         if (emsg.type == ERL_REG_SEND) {
           if(IS_CALL_ORDER(emsg.msg)) {
+            time_t now = time(0);
             for(auto& er : event_arrays){
               er->sort();
-              er->update(time(0));
+              er->update(now);
             }
           } else if(IS_CALL_HANDLE_EVENT_TZ(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list, *ts;
@@ -182,7 +183,6 @@ int main(int argc, char **argv) {
           }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list;
 
-            std::cout << ""   << ERL_TUPLE_SIZE(emsg.msg)<<  std::endl;
             tuplep       = erl_element(3, emsg.msg);
 
             event_list   = erl_element(2, tuplep);
