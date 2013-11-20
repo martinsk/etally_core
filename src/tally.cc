@@ -260,7 +260,7 @@ int main(int argc, char **argv) {
             
             ETERM* list = erl_mk_empty_list();
 
-            if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].size() != 0){
+            if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].count(lb_dim) != 0){
 
               auto& board = event_array::lb_map[lb_id][lb_dim]->board;
               int count = 0;
