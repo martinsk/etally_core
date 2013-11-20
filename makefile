@@ -15,7 +15,7 @@ UNAME_S := $(shell uname -s)
   endif
 
 # define any compile-time flags
-CFLAGS = -Wall -O2 -std=c++11 -g
+CFLAGS = -Wall -O3 -std=c++11
 
 # define any directories containing header files other than /usr/include
 #
@@ -47,7 +47,7 @@ endif
   endif
 
 # define the C source files
-SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc 
+SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc # src/idx_assigner.cc  
 
 # define the C object files 
 #

@@ -55,6 +55,8 @@ public:
   void update(timestamp_t now);
   void increment_counter(std::string c);
 
+  void sort();
+
   unsigned long length() const;
 
   void print() const;

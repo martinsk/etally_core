@@ -4,6 +4,7 @@
 #include "leaderboard.hh"
 
 #include <iostream>
+#include <queue>
 
 std::unordered_map<std::vector<count_name_t>, idx_t, string_vector_hasher>  event_array::encode_map;
 std::unordered_map<idx_t, std::vector<count_name_t> > event_array::decode_map;
@@ -78,7 +79,7 @@ void event_array::update(timestamp_t now) {
       
       if(counters[s] == 0){
         counters.erase(s);
-        for(auto& lb : event_array::lb_lookup_map[s]){
+        for(auto lb : event_array::lb_lookup_map[s]){
           event_array::lb_map[lb][timespan]->remove(s);
         }
         //event_array::lb_lookup_map[s].erase(lb);
@@ -111,6 +112,23 @@ void event_array::increment_counter(count_name_t c) {
   }
   
   if(tail) tail->increment_counter(c);
+}
+
+void event_array::sort() {
+  std::priority_queue<std::pair<unsigned int, unsigned int> > pq;
+  while(!queue.empty()) {
+    pq.push(std::make_pair(-queue.front().timestamp, queue.front().event_idx));
+    queue.dequeue();
+  }
+
+  while(!pq.empty()){
+    struct event e;
+    e.timestamp = -pq.top().first;
+    e.event_idx = pq.top().second;
+    pq.pop();
+    queue.enqueue(e);
+  }
+
 }
   
 unsigned long event_array::length() const {

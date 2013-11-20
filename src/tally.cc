@@ -25,7 +25,9 @@
 #define BUFSIZE 1024
 
 bool is_call_funcname(std::string func_name, ETERM* message);
+
 #define IS_CALL_HANDLE_EVENT(X)      (is_call_funcname("event", X))
+#define IS_CALL_ORDER(X)             (is_call_funcname("order", X))
 #define IS_CALL_HANDLE_EVENT_TZ(X)   (is_call_funcname("event_tz", X))
 #define IS_CALL_GET_COUNTER(X)       (is_call_funcname("get_counter", X))
 #define IS_CALL_GET_LEADERBOARD(X)   (is_call_funcname("get_leaderboard", X))
@@ -120,7 +122,7 @@ int main(int argc, char **argv) {
   
   if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
     erl_err_quit("erl_accept failed");
-  
+
   while(true){
     loop = 1;
 
@@ -135,9 +137,52 @@ int main(int argc, char **argv) {
       } else {
       
         if (emsg.type == ERL_REG_SEND) {
-          if(IS_CALL_HANDLE_EVENT(emsg.msg)){
+          if(IS_CALL_ORDER(emsg.msg)) {
+            for(auto& er : event_arrays){
+              er->sort();
+              er->update(time(0));
+            }
+          } else if(IS_CALL_HANDLE_EVENT_TZ(emsg.msg)){
+            ETERM* tuplep, *event_list, *binding_list, *ts;
+
+
+            tuplep       = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
+
+            event_list   = erl_element(2, tuplep);
+            binding_list = erl_element(3, tuplep);
+            ts           = erl_element(4, tuplep);
+
+            std::vector< std::string> counters;
+            while( !ERL_IS_NIL(event_list) ) {
+              ETERM* head = ERL_CONS_HEAD(event_list);
+              counters.push_back(term2str(head));
+              event_list = ERL_CONS_TAIL(event_list);
+            }
+            std::sort(counters.begin(), counters.end());
+
+            while(!ERL_IS_NIL(binding_list)){
+              ETERM* head = ERL_CONS_HEAD(binding_list);
+              std::string counter_id = term2str(erl_element(1, head));
+              std::string lb_id      = term2str(erl_element(2, head));
+              
+              if(event_array::lb_map.count(lb_id) == 0) {
+                for(auto i : intervals) {
+                  event_array::lb_map[lb_id][i] = new leaderboard;
+                }
+              }
+              event_array::lb_lookup_map[counter_id].insert(lb_id);
+              binding_list =  ERL_CONS_TAIL(binding_list);
+            }
+
+            
+            event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
+
+
+            erl_free_compound(tuplep); 
+          }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list;
 
+            std::cout << ""   << ERL_TUPLE_SIZE(emsg.msg)<<  std::endl;
             tuplep       = erl_element(3, emsg.msg);
 
             event_list   = erl_element(2, tuplep);
@@ -168,40 +213,7 @@ int main(int argc, char **argv) {
             event_arrays.front()->event(counters, time(0));
             erl_free_compound(tuplep); 
           }
-          else if(IS_CALL_HANDLE_EVENT_TZ(emsg.msg)){
-            ETERM* tuplep, *event_list, *binding_list, *tz;
-           
-            tuplep       = erl_element(4, emsg.msg);
-
-            event_list   = erl_element(2, tuplep);
-            binding_list = erl_element(3, tuplep);
-            tz           = erl_element(4, tuplep);
-
-            std::vector< std::string> counters;
-            while( !ERL_IS_NIL(event_list) ) {
-              ETERM* head = ERL_CONS_HEAD(event_list);
-              counters.push_back(term2str(head));
-              event_list = ERL_CONS_TAIL(event_list);
-            }
-            std::sort(counters.begin(), counters.end());
-
-            while(!ERL_IS_NIL(binding_list)){
-              ETERM* head = ERL_CONS_HEAD(binding_list);
-              std::string counter_id = term2str(erl_element(1, head));
-              std::string lb_id      = term2str(erl_element(2, head));
-              
-              if(event_array::lb_map.count(lb_id) == 0) {
-                for(auto i : intervals) {
-                  event_array::lb_map[lb_id][i] = new leaderboard;
-                }
-              }
-              event_array::lb_lookup_map[counter_id].insert(lb_id);
-              binding_list =  ERL_CONS_TAIL(binding_list);
-            }
-            
-            event_arrays.front()->event(counters,ERL_INT_UVALUE(tz));
-            erl_free_compound(tuplep); 
-          }
+          
           else if (IS_CALL_GET_COUNTER(emsg.msg)) {
             ETERM *fromp;
             fromp = erl_element(2, emsg.msg);
@@ -295,7 +307,7 @@ int main(int argc, char **argv) {
 
   
 bool is_call_funcname(std::string func_name, ETERM* call_term) {
-  ETERM  *tuplep = erl_element(3, call_term);
+  ETERM  *tuplep = erl_element(ERL_TUPLE_SIZE(call_term), call_term);
   ETERM  *fnp    = erl_element(1, tuplep   );
   
   // printf("testing : %s \n", ERL_ATOM_PTR(fnp));
