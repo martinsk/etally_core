@@ -146,7 +146,6 @@ int main(int argc, char **argv) {
           } else if(IS_CALL_HANDLE_EVENT_TZ(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list, *ts;
 
-
             tuplep       = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
 
             event_list   = erl_element(2, tuplep);
@@ -175,10 +174,8 @@ int main(int argc, char **argv) {
               binding_list =  ERL_CONS_TAIL(binding_list);
             }
 
-            
             event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
-
-
+            
             erl_free_compound(tuplep); 
           }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list;
@@ -225,27 +222,42 @@ int main(int argc, char **argv) {
             
             ETERM* list = erl_mk_empty_list();
             for(auto& events : event_arrays) {
-            
               ETERM* tuple[2];
               tuple[0] = erl_mk_uint(events->timespan);
               tuple[1] = erl_mk_ulonglong(events->counters[id_str]);
-              list = erl_cons(erl_mk_tuple(tuple, 2), list);
+              ETERM* hd = erl_mk_tuple(tuple, 2);
+              ETERM* new_list = erl_cons(hd, list);
+              erl_free_term(hd);
+              erl_free_term(list);
+              list = new_list;
+              erl_free_term(tuple[0]);
+              erl_free_term(tuple[1]);
+
             }
 
             ETERM* tuple[2];
             tuple[0] = erl_mk_atom("tally");
             tuple[1] = list;
+
             ETERM* resp = erl_mk_tuple(tuple, 2);
-                
+            erl_free_term(tuple[0]);
+            erl_free_term(tuple[1]);
+            
+
             erl_send(fd, fromp, resp);
+            erl_free_compound(tuplep); 
             erl_free_term(fromp); 
-            erl_free_term(resp); 
+            erl_free_compound(resp); 
           }
-          else if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
+          else  if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
+
             ETERM *fromp  = erl_element(2, emsg.msg);
             ETERM* tuplep = erl_element(3, emsg.msg);
-            std::string  lb_id  = term2str(erl_element(2, tuplep));
+            ETERM* lb_id_p = erl_element(2, tuplep);
+            std::string  lb_id  = term2str(lb_id_p);
             unsigned int lb_dim = ERL_INT_UVALUE(erl_element(3, tuplep));
+            erl_free_term(lb_id_p);
+            
             ETERM* list = erl_mk_empty_list();
 
             if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].size() != 0){
@@ -256,9 +268,14 @@ int main(int argc, char **argv) {
               for(auto entry = board.begin(); (entry != board.end()) && (count != 10); entry++, count ++) {
                 ETERM* tuple[2];
                 tuple[0] = erl_mk_binary(entry->second.c_str(), entry->second.length());
-                // std::cout << entry->second << ": " << entry->first << std::endl; 
                 tuple[1] = erl_mk_uint(- entry->first);
-                list = erl_cons(erl_mk_tuple(tuple, 2), list);
+                ETERM* hd = erl_mk_tuple(tuple, 2);
+                ETERM* new_list = erl_cons(hd, list);
+                erl_free_term(list);
+                list = new_list;
+                erl_free_term(hd);
+                erl_free_term(tuple[0]);
+                erl_free_term(tuple[1]);
               }
             }
 
@@ -266,15 +283,19 @@ int main(int argc, char **argv) {
             tuple[0] = erl_mk_atom("tally");
             tuple[1] = list;
             ETERM* resp = erl_mk_tuple(tuple, 2);
-
+            erl_free_term(tuple[0]);
+            erl_free_term(tuple[1]);
+            
             erl_send(fd, fromp, resp);
             erl_free_term(fromp); 
+            erl_free_compound(tuplep); 
             erl_free_compound(resp); 
           }
 
           else if (IS_CALL_LIST_LEADERBOARDS(emsg.msg)) {
             ETERM *fromp = erl_element(2, emsg.msg);
             ETERM* list  = erl_mk_empty_list();
+
             for(auto board : event_array::lb_map) {
               for(auto i : intervals) {
                 ETERM* tuple[2];
@@ -283,10 +304,13 @@ int main(int argc, char **argv) {
                 list = erl_cons(erl_mk_tuple(tuple, 2), list);
               }
             }
+            
             ETERM* tuple[2];
             tuple[0] = erl_mk_atom("tally");
             tuple[1] = list;
+            
             ETERM* resp = erl_mk_tuple(tuple, 2);
+
             
             erl_send(fd, fromp, resp);
             erl_free_term(fromp); 
