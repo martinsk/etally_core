@@ -199,7 +199,7 @@ int main(int argc, char **argv) {
               binding_list =  ERL_CONS_TAIL(binding_list);
             }
             
-            event_arrays.front()->event(counters,ERL_IS_INTEGER(tz));
+            event_arrays.front()->event(counters,ERL_INT_UVALUE(tz));
             erl_free_compound(tuplep); 
           }
           else if (IS_CALL_GET_COUNTER(emsg.msg)) {
