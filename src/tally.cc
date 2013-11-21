@@ -28,6 +28,7 @@ bool is_call_funcname(std::string func_name, ETERM* message);
 
 #define IS_CALL_HANDLE_EVENT(X)      (is_call_funcname("event", X))
 #define IS_CALL_ORDER(X)             (is_call_funcname("order", X))
+#define IS_CALL_START(X)             (is_call_funcname("start", X))
 #define IS_CALL_HANDLE_EVENT_TZ(X)   (is_call_funcname("event_tz", X))
 #define IS_CALL_GET_COUNTER(X)       (is_call_funcname("get_counter", X))
 #define IS_CALL_GET_LEADERBOARD(X)   (is_call_funcname("get_leaderboard", X))
@@ -83,6 +84,10 @@ int main(int argc, char **argv) {
   unsigned char buf[BUFSIZE];              /* Buffer for incoming message */
   ErlMessage emsg;                         /* Incoming message */
 
+
+  bool started = false;
+  circular_queue<std::pair<std::vector<std::string>, uint32_t> > buffer_queue;
+
   int port = 3456;// atoi(argv[1]);
   char *erl_secret    = argv[4];
   char erl_node[]     = "tally";
@@ -123,6 +128,9 @@ int main(int argc, char **argv) {
   if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
     erl_err_quit("erl_accept failed");
 
+
+  std::cout << "tally started at unixtimestamp" << time(0) << std::endl; 
+
   while(true){
     loop = 1;
 
@@ -137,7 +145,16 @@ int main(int argc, char **argv) {
       } else {
       
         if (emsg.type == ERL_REG_SEND) {
-          if(IS_CALL_ORDER(emsg.msg)) {
+          if(IS_CALL_START(emsg.msg)) {
+            std::cout << "start call" << std::endl;
+            while(!buffer_queue.empty()){
+              event_arrays.front()->event(buffer_queue.front().first,
+                                          buffer_queue.front().second);
+              buffer_queue.dequeue();
+            }
+            started = true;
+          }
+          else if(IS_CALL_ORDER(emsg.msg)) {
             time_t now = time(0);
             for(auto& er : event_arrays){
               er->sort();
@@ -174,8 +191,13 @@ int main(int argc, char **argv) {
               binding_list =  ERL_CONS_TAIL(binding_list);
             }
 
-            event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
+            while((!buffer_queue.empty()) && (buffer_queue.front().second < ERL_INT_VALUE(ts))){
+              event_arrays.front()->event(buffer_queue.front().first,
+                                          buffer_queue.front().second);
+              buffer_queue.dequeue();
+            }
             
+            event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
             erl_free_compound(tuplep); 
           }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list;
@@ -207,7 +229,9 @@ int main(int argc, char **argv) {
               binding_list =  ERL_CONS_TAIL(binding_list);
             }
             
-            event_arrays.front()->event(counters, time(0));
+            if(started) event_arrays.front()->event(counters, time(0));
+            else buffer_queue.enqueue(make_pair(counters, time(0)));
+            
             erl_free_compound(tuplep); 
           }
           
