@@ -4,7 +4,7 @@
 #include "leaderboard.hh"
 
 #include <iostream>
-#include <queue>
+#include <algorithm>
 
 std::unordered_map<std::vector<count_name_t>, idx_t, string_vector_hasher>  event_array::encode_map;
 std::unordered_map<idx_t, std::vector<count_name_t> > event_array::decode_map;
@@ -115,20 +115,21 @@ void event_array::increment_counter(count_name_t c) {
 }
 
 void event_array::sort() {
-  std::priority_queue<std::pair<unsigned int, unsigned int> > pq;
+  std::vector<std::pair<uint32_t, uint32_t> > vec;
   while(!queue.empty()) {
-    pq.push(std::make_pair(-queue.front().timestamp, queue.front().event_idx));
+    vec.push_back(std::make_pair(-queue.front().timestamp, queue.front().event_idx));
     queue.dequeue();
   }
+  std::sort(vec.begin(), vec.end());
 
-  while(!pq.empty()){
+  for(auto& pair : vec){
     struct event e;
-    e.timestamp = -pq.top().first;
-    e.event_idx = pq.top().second;
-    pq.pop();
+    e.timestamp = -pair.first;
+    e.event_idx = pair.second;
     queue.enqueue(e);
   }
-
+  update(time(0));
+  if(tail) tail->sort();
 }
   
 unsigned long event_array::length() const {
