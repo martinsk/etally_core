@@ -15,7 +15,7 @@ UNAME_S := $(shell uname -s)
   endif
 
 # define any compile-time flags
-CFLAGS = -Wall -O3 -std=c++11
+CFLAGS = -Wall -O3 -std=c++11 -g
 
 # define any directories containing header files other than /usr/include
 #
