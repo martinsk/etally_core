@@ -8,22 +8,22 @@
 
 #include <string>
 
+
 typedef uint32_t idx_t;
 typedef uint32_t timestamp_t;
 
-typedef uint32_t action_t;
-typedef uint32_t counter_idx_t;
-typedef uint32_t counter_t;
-
-
+typedef idx_t counter_idx_t;
+typedef idx_t leaderboard_idx_t;
 
 typedef std::string lb_name_t;
-typedef std::string count_name_t;
+typedef std::string counter_name_t;
 
 class leaderboard;
 
-typedef std::unordered_map<lb_name_t, std::unordered_map<unsigned int,  leaderboard* > > lb_double_map_t;
-typedef std::unordered_map<count_name_t, std::unordered_set<lb_name_t > > lb_idx_t;
+
+typedef std::unordered_map<leaderboard_idx_t, std::unordered_map<counter_idx_t,  leaderboard* > > leaderboard_lookup_counter_map;
+typedef std::unordered_map<counter_idx_t, std::unordered_set<leaderboard_idx_t > > lb_lookup_set_map;
+
 
 struct event {
   timestamp_t timestamp;

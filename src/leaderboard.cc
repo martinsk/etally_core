@@ -6,9 +6,9 @@
 
 
 void
-leaderboard::add(std::string elm, long score) {
+leaderboard::add(counter_idx_t elm, long score) {
   if(!contains(elm)) {
-    board.push_back(make_pair(score, elm));
+    board.push_back(std::make_pair(score, elm));
     idx_lookup[elm] = board.size()-1;
     bubble_up(idx_lookup[elm]);
   } 
@@ -21,7 +21,7 @@ leaderboard::add(std::string elm, long score) {
 }
 
 void 
-leaderboard::remove(std::string elm){
+leaderboard::remove(counter_idx_t elm){
   board[idx_lookup[elm]].first = -1;
   bubble_down(idx_lookup[elm]);
   idx_lookup.erase(elm);
@@ -30,7 +30,7 @@ leaderboard::remove(std::string elm){
 
 
 bool
-leaderboard::contains(const count_name_t elm) const {
+leaderboard::contains(counter_idx_t elm) const {
   return idx_lookup.count(elm) != 0;
 }
 
@@ -39,9 +39,9 @@ leaderboard::size() const {
   return board.size();
 }
 
-std::vector<std::pair< long, count_name_t> >
+std::vector<std::pair< long, counter_idx_t> >
 leaderboard::get_range(idx_t from, idx_t to) const {
-  std::vector<std::pair<long, count_name_t> > ret;
+  std::vector<std::pair<long, counter_idx_t> > ret;
   for(idx_t idx = std::min(from, (idx_t)board.size()-1);
       idx < std::min(to, (idx_t)board.size()); idx++){
     ret.push_back(board[idx]);

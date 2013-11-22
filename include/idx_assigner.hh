@@ -4,12 +4,14 @@
 #include <stack>
 #include <unordered_map>
 
+#include "types.hh"
+
 class idx_assigner{
 private:
   unsigned int max_idx = 0;
   std::stack<unsigned int> unused;
-  std::unordered_map<std::string, idx> idx_lookup;
-  std::unordered_map<idx, std::string> token_lookup;
+  std::unordered_map<std::string, idx_t> idx_lookup;
+  std::unordered_map<idx_t, std::string> token_lookup;
   
   
 public:
@@ -19,7 +21,7 @@ public:
   void release_idx(unsigned int idx);
 
 private:
-  unsigned int assign_idx(const std::string& token);
+  idx_t assign_idx(const std::string& token);
 };
 
 #endif //IDX_ASSIGNER_HH

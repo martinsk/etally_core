@@ -15,17 +15,17 @@ private:
   // std::map<count_name_t, unsigned long> score_map;
   // std::set<std::pair<unsigned long, count_name_t> > board;
 
-  std::unordered_map<count_name_t, idx_t> idx_lookup;
-  std::vector<std::pair<long, count_name_t> > board;
+  std::unordered_map<counter_idx_t, idx_t> idx_lookup;
+  std::vector<std::pair<long, counter_idx_t> > board;
 
 public:
-  void add(const count_name_t elm, long score);
-  void remove(const count_name_t elm);
+  void add(counter_idx_t elm, long score);
+  void remove(counter_idx_t elm);
 
-  bool contains(const count_name_t elm) const;
+  bool contains(counter_idx_t elm) const;
 
   unsigned int size() const;
-  std::vector<std::pair< long, count_name_t> > get_range(idx_t from, idx_t to) const;
+  std::vector<std::pair< long, counter_idx_t> > get_range(idx_t from, idx_t to) const;
 
   void print();
 

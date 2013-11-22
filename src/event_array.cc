@@ -6,14 +6,14 @@
 #include <iostream>
 #include <algorithm>
 
-std::unordered_map<std::vector<count_name_t>, idx_t, string_vector_hasher>  event_array::encode_map;
-std::unordered_map<idx_t, std::vector<count_name_t> > event_array::decode_map;
+std::unordered_map<std::vector<counter_idx_t>, idx_t, uint32_vector_hasher>  event_array::encode_map;
+std::unordered_map<idx_t, std::vector<counter_idx_t> > event_array::decode_map;
 std::unordered_map<idx_t, unsigned long>     event_array::reference_counters;
 std::unordered_set<idx_t>  event_array::unused_idx;
 idx_t  event_array::max_idx = 0;
 
-lb_double_map_t event_array::lb_map;
-lb_idx_t event_array::lb_lookup_map;
+leaderboard_lookup_counter_map event_array::lb_map;
+lb_lookup_set_map  event_array::lb_lookup_map;
 
 
 event_array::event_array(timestamp_t timespan, event_array* const tail)
@@ -29,7 +29,7 @@ void event_array::event(struct event e) {
   queue.enqueue(e);
 }
 
-void event_array::event(std::vector<count_name_t> groups, timestamp_t insert_time) {
+void event_array::event(std::vector<counter_idx_t> groups, timestamp_t insert_time) {
   for(auto s : groups)
     increment_counter(s);
 
@@ -100,7 +100,7 @@ void event_array::update(timestamp_t now) {
 
 }
 
-void event_array::increment_counter(count_name_t c) {
+void event_array::increment_counter(counter_idx_t c) {
   
   if (counters.count(c) == 0) {
     counters[c] = 0;

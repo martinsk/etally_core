@@ -12,13 +12,12 @@
 
 class leaderboard;
 
-class string_vector_hasher {
+class uint32_vector_hasher {
 public:
-  std::size_t operator()(std::vector<std::string> const& ss) const {
+  std::size_t operator()(std::vector<uint32_t> const& vec) const {
     std::size_t ret = 0;
-    for(auto& s : ss) {
-      std::string str(s.c_str());
-      size_t hash = std::hash<std::string>()(str);
+    for(auto& i : vec) {
+      size_t hash = std::hash<uint32_t>()(i);
       ret ^= hash;
     }
     return ret;
@@ -34,35 +33,32 @@ public:
   timestamp_t   timespan;
   event_array* const  tail;
   
-  static std::unordered_map<std::vector<count_name_t>, idx_t, string_vector_hasher>  encode_map;
-  static std::unordered_map<idx_t, std::vector<count_name_t> > decode_map;
+  static std::unordered_map<std::vector<counter_idx_t>, idx_t, uint32_vector_hasher>  encode_map;
+  static std::unordered_map<leaderboard_idx_t, std::vector<counter_idx_t> > decode_map;
   static std::unordered_map<idx_t, unsigned long>     reference_counters;
   static std::unordered_set<idx_t> unused_idx;
   static idx_t max_idx;
 
-  static lb_double_map_t lb_map;
-  static lb_idx_t lb_lookup_map;
+  static leaderboard_lookup_counter_map lb_map;
+  static lb_lookup_set_map lb_lookup_map;
 
 
 public:
   event_array(timestamp_t timespan, event_array* const tail = NULL);
   ~event_array();
   
-  std::unordered_map<std::string, unsigned long> counters;
+  std::unordered_map<counter_idx_t, unsigned long> counters;
 
   void event(struct event e);
-  void event(std::vector<count_name_t> groups, timestamp_t insert_time);
+  void event(std::vector<counter_idx_t> groups, timestamp_t insert_time);
   void update(timestamp_t now);
-  void increment_counter(std::string c);
+  void increment_counter(idx_t c);
 
   void sort();
 
   unsigned long length() const;
 
   void print() const;
-
-private:    
-  friend class event_scanner;
 };
 
 

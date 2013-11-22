@@ -47,7 +47,7 @@ endif
   endif
 
 # define the C source files
-SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc # src/idx_assigner.cc  
+SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc src/idx_assigner.cc  
 
 # define the C object files 
 #
