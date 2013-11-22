@@ -205,6 +205,7 @@ int main(int argc, char **argv) {
             }
             
             event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
+            
             erl_free_compound(tuplep); 
           }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
             ETERM* tuplep, *event_list, *binding_list;
@@ -292,7 +293,7 @@ int main(int argc, char **argv) {
             erl_free_term(lb_id_p);
 
             int page = 0;
-            int page_size = 20;
+            int page_size = 10;
 
             ETERM* page_p = erl_element(4, tuplep);
             if (page_p) page = ERL_INT_UVALUE(page_p);
