@@ -100,7 +100,7 @@ int main(int argc, char **argv) {
   const unsigned int month = 4 *week;
   std::vector<unsigned> intervals = {10,     20,
                                      hour,   2*hour,
-                                     day,    2*day,
+                                     day,    2*day,  3*day,
                                      week,   2*week,
                                      month,  2*month};
 
@@ -139,12 +139,19 @@ int main(int argc, char **argv) {
       event_arrays.front()->update( time(0) );
       
       got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
+      
       if (got == ERL_TICK) { /* ignore */ }
       else if (got == ERL_ERROR) {
         //      loop = 0;
       } else {
       
         if (emsg.type == ERL_REG_SEND) {
+
+          // erl_print_term(stdout, emsg.msg);
+          // fprintf(stdout,"\n");
+          // fflush(stdout);
+
+
           if(IS_CALL_START(emsg.msg)) {
             std::cout << "start call" << std::endl;
             while(!buffer_queue.empty()){
@@ -275,24 +282,31 @@ int main(int argc, char **argv) {
           }
           else  if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
 
-            ETERM *fromp  = erl_element(2, emsg.msg);
-            ETERM* tuplep = erl_element(3, emsg.msg);
+            ETERM *fromp   = erl_element(2, emsg.msg);
+            ETERM* tuplep  = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
             ETERM* lb_id_p = erl_element(2, tuplep);
+            
+
             std::string  lb_id  = term2str(lb_id_p);
             unsigned int lb_dim = ERL_INT_UVALUE(erl_element(3, tuplep));
             erl_free_term(lb_id_p);
+
+            int page = 0;
+            int page_size = 20;
+
+            ETERM* page_p = erl_element(4, tuplep);
+            if (page_p) page = ERL_INT_UVALUE(page_p);
             
             ETERM* list = erl_mk_empty_list();
 
             if(event_array::lb_map.count(lb_id) != 0 && event_array::lb_map[lb_id].count(lb_dim) != 0){
 
-              auto& board = event_array::lb_map[lb_id][lb_dim]->board;
-              int count = 0;
-              // std::cout << std::endl;
-              for(auto entry = board.begin(); (entry != board.end()) && (count != 10); entry++, count ++) {
+              auto board = event_array::lb_map[lb_id][lb_dim]->get_range(0 + page*page_size,10 + page*page_size);
+
+              for(auto entry = board.begin(); (entry != board.end()); entry++) {
                 ETERM* tuple[2];
                 tuple[0] = erl_mk_binary(entry->second.c_str(), entry->second.length());
-                tuple[1] = erl_mk_uint(- entry->first);
+                tuple[1] = erl_mk_uint(entry->first);
                 ETERM* hd = erl_mk_tuple(tuple, 2);
                 ETERM* new_list = erl_cons(hd, list);
                 erl_free_term(list);
