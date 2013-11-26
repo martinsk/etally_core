@@ -109,7 +109,7 @@ int main(int argc, char **argv) {
   const unsigned int month = 4 *week;
   std::vector<unsigned> intervals = {10,     20,
                                      hour,   2*hour,
-                                     day,    2*day,  3*day,
+                                     day,    2*day,  3*day, 4*day, 5*day, 6*day,
                                      week,   2*week,
                                      month,  2*month};
 
@@ -144,8 +144,6 @@ int main(int argc, char **argv) {
     loop = 1;
 
     while (loop) {
-      // update the datastructure
-      event_arrays.front()->update( time(0) );
       
       got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
       
@@ -154,11 +152,16 @@ int main(int argc, char **argv) {
         //      loop = 0;
       } else {
       
+        // update the datastructure
+        event_arrays.front()->update( time(0) );
+            
+
         if (emsg.type == ERL_REG_SEND) {
 
 
 
           if(IS_CALL_START(emsg.msg)) {
+
             std::cout << "start call" << std::endl;
             while(!buffer_queue.empty()){
               event_arrays.front()->event(buffer_queue.front().first,
@@ -262,6 +265,7 @@ int main(int argc, char **argv) {
           }
           
           else if (IS_CALL_GET_COUNTER(emsg.msg)) {
+
             ETERM *fromp;
             fromp = erl_element(2, emsg.msg);
 
