@@ -43,7 +43,6 @@ void metric_bind_leaderboards(ETERM* binding_list, tally& tally_srv){
       leaderboard_idx_t leaderboard_idx = tally_srv->metric_leaderboard_idx_assigner.get_idx(lb_id);
       counter_idx_t counter_idx = tally_srv->metric_identifier_idx_assigner.get_idx(counter_id);
       if(event_metric_array::lb_map.count(leaderboard_idx) == 0) {
-        std::cout << "created leaderboard for : " << lb_id<< std::endl;
         for(auto i : tally_srv->metric_get_leaderboard_intervals()) {
           event_metric_array::lb_map[leaderboard_idx][i] = new leaderboard;
         }
@@ -56,7 +55,6 @@ void metric_bind_leaderboards(ETERM* binding_list, tally& tally_srv){
 }
 
 void metric_handle_event_timestamp(ErlMessage& emsg, tally& tally_srv) {
-  std::cout << "metric_handle_event_timestamp" << std::endl;
  
   ETERM *tuplep       = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
   ETERM *event_list   = erl_element(2, tuplep);
@@ -88,7 +86,6 @@ void metric_handle_event_timestamp(ErlMessage& emsg, tally& tally_srv) {
     buffer_queue.dequeue();
   }
 
-  std::cout << "ready to do the work" << std::endl;
   tally_srv.handle_metric_event(counters, ERL_INT_UVALUE(ts), ERL_INT_UVALUE(payload));
   erl_free_compound(tuplep); 
 }
@@ -178,7 +175,6 @@ void metric_handle_get_leaderboard(ErlMessage& emsg, tally& tally_srv, int fd) {
   ETERM* page_p = erl_element(4, tuplep);
   if (page_p) page = ERL_INT_UVALUE(page_p);
 
-  erl_print_term(stdout, tuplep);
             
   leaderboard_idx_t leaderboard_idx = tally_srv.metric_leaderboard_idx_assigner.get_idx(lb_id);
             

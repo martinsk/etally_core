@@ -34,27 +34,21 @@ void event_metric_array::event(struct event_metric e) {
 void event_metric_array::event(const std::vector<counter_idx_t>& groups,
                                metric_payload_t payload,
                                timestamp_t insert_time) {
-
-  std::cout << "seart" << std::endl;
   idx_t event_idx;
   if(encode_map.count(groups) == 0) {
-    std::cout << "new encode" << std::endl;
     event_idx = max_idx;
     max_idx++;
     encode_map[groups]    = event_idx;
     decode_map[event_idx] = groups;
   } else{
-    std::cout << "reusing" << std::endl;
     event_idx = encode_map.find(groups)->second;
   }
-  std::cout << "decode done" << std::endl;
   reference_counters[event_idx] ++;
   
   struct event_metric e = {.timestamp = insert_time,
                            .event_idx = event_idx  ,
                            .payload   = payload    };
 
-  std::cout << "prepped" << std::endl;
   event(e);
 }
 
@@ -74,13 +68,7 @@ void event_metric_array::update(timestamp_t now) {
       unsigned long long insert_sum   = event_metric_array::insert_sums[s];
       unsigned long long insert_sqsum = event_metric_array::insert_sqsums[s];
       unsigned long adjusted_count  = insert_count - counters[s];
-      unsigned long adjusted_sum    = insert_sum   - sums[s];
-      unsigned long adjusted_sqsum  = insert_sqsum - sqsums[s];
 
-      std::cout << "timespan: "<< timespan << " ( count:" << adjusted_count
-                << ", sum:" << adjusted_sum 
-                << ", sqsum:" << adjusted_sqsum  << ")" << std::endl;
-      
 
       for(auto lb : event_metric_array::lb_lookup_map[s]){
         auto& this_lb_map = event_metric_array::lb_map[lb];
