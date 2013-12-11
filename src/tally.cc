@@ -1,435 +1,165 @@
-#include <cstdio>
-#include <cstdlib>
-#include <cstring>
-#include <time.h>
-#include <stdint.h>
-#include <sys/types.h>
-#include <sys/socket.h>
-#include <netinet/in.h>
-#include <arpa/inet.h> 
 
-#include "erl_interface.h"
-#include "ei.h"
-
-#include <algorithm>
-#include <iostream>
-#include <queue>  
-#include <string>
-#include <unordered_map>
-
-#include "types.hh"
-#include "event_array.hh"
-#include "leaderboard.hh"
-#include "idx_assigner.hh"
+#include "tally.hh"
 
 
-#define BUFSIZE 1024
-
-bool is_call_funcname(std::string func_name, ETERM* message);
-
-#define IS_CALL_HANDLE_EVENT(X)      (is_call_funcname("event", X))
-#define IS_CALL_ORDER(X)             (is_call_funcname("order", X))
-#define IS_CALL_START(X)             (is_call_funcname("start", X))
-#define IS_CALL_HANDLE_EVENT_TZ(X)   (is_call_funcname("event_tz", X))
-#define IS_CALL_GET_COUNTER(X)       (is_call_funcname("get_counter", X))
-#define IS_CALL_GET_LEADERBOARD(X)   (is_call_funcname("get_leaderboard", X))
-#define IS_CALL_LIST_LEADERBOARDS(X) (is_call_funcname("list_leaderboards", X))
-
-
-int my_listen(int port);
-
-
-std::string term2str(ETERM* ch_str) {
-  unsigned char* str = ERL_BIN_PTR(ch_str);
-  return std::string(str, str +  ERL_BIN_SIZE(ch_str));
-}
-
-std::ostream& operator<<(std::ostream& out,  const struct event e)  {
-  out << "{" << e.event_idx << ", " << e.timestamp << " } ";
-  return out;
-}
-
-std::ostream& operator<<(std::ostream& out,  const circular_queue<struct event>& queue)  {
-  for(int i = 0; i != queue.size; i ++){ 
-    int idx = (queue.back_p - queue.size + i)%queue.container_size;
-    out << queue.data[idx] <<" ";
-  }
-  return out;
-}
-
-
-std::ostream& operator<<(std::ostream& out,  const circular_queue<int>& queue)  {
-  for(int i = 0; i != queue.size; i ++){ 
-    int idx = (queue.back_p - queue.size + i)%queue.container_size;
-    out << queue.data[idx] <<" ";
-  }
-  return out;
-}
-
-
-int main(int argc, char **argv) {
-
-  idx_assigner assigner;
-  
-  idx_assigner leaderboard_idx_assigner;
-  idx_assigner counter_idx_assigner;
-
-
-
-  // tally_core ip localname longname secret
-  if(argc != 5) {
-    std::cout << "usage: ./tally_srv <ip> <localname> <longname> <cookie>" << std::endl;
-    std::cout << "example: ./etally_srv \"127.0.0.1\" \"msk-dev\" \"tally@msk-dev.local\" \"secretcookie\"" << std::endl;
-    return -1;
-  }
-  
-  struct in_addr addr;                     /* 32-bit IP number of host */
-  int listen;                              /* Listen socket */
-  int fd;                                  /* fd to Erlang node */
-  ErlConnect conn;                         /* Connection data */
-
-  int loop = 1;                            /* Loop flag */
-  int got;                                 /* Result of receive */
-  unsigned char buf[BUFSIZE];              /* Buffer for incoming message */
-  ErlMessage emsg;                         /* Incoming message */
-
-
-  bool started = false;
-  circular_queue<std::pair<std::vector<counter_idx_t>, uint32_t> > buffer_queue;
-
-  int port = 3456;// atoi(argv[1]);
-  char *erl_secret    = argv[4];
-  char erl_node[]     = "tally";
-  char *erl_localname = argv[2];
-  char *erl_longname  = argv[3];
-   
-  const unsigned int hour  = 60*60;
-  const unsigned int day   = 24*hour;
-  const unsigned int week  = 7*day;
-  const unsigned int month = 4 *week;
-  std::vector<unsigned> intervals = {10,     20,
-                                     hour,   2*hour,
-                                     day,    2*day,  3*day, 4*day, 5*day, 6*day,
-                                     week,   2*week,
-                                     month,  2*month};
-
-  std::reverse(intervals.begin(), intervals.end());
-  std::vector<event_array*> event_arrays;
+tally::tally(std::vector<unsigned> intervals,
+             std::vector<unsigned> leaderboard_intervals)
+  : intervals(intervals),
+    leaderboard_intervals(leaderboard_intervals)
+{
   for(auto i = intervals.begin(); i != intervals.end(); i++) {
-    if(event_arrays.empty()) event_arrays.push_back(new event_array(*i));
+    if(event_arrays.empty())  event_arrays.push_back(new event_array(*i));
     else event_arrays.push_back(new event_array(*i, event_arrays.back()));
-  }
-  std::reverse(event_arrays.begin(), event_arrays.end());
 
-  erl_init(NULL, 0);
+    if(event_metric_arrays.empty())  event_metric_arrays.push_back(new event_metric_array(*i));
+    else event_metric_arrays.push_back(new event_metric_array(*i, event_metric_arrays.back()));
+  }
+  std::reverse(event_arrays.begin(),        event_arrays.end());
+  std::reverse(event_metric_arrays.begin(), event_metric_arrays.end());
+
+}
+
+tally::~tally() {}
+
+void
+tally::handle_count_event(const std::vector< counter_idx_t>& counters,
+                    timestamp_t timestamp) {  
+  for(auto counter : counters) {
+    event_array::insert_counters[counter] ++;
+    // add counter to leaderboard
+    long insert_count = event_array::insert_counters[counter];
     
-  addr.s_addr = inet_addr(argv[1]);
- 
-  if (erl_connect_xinit(erl_localname, erl_node, erl_longname, &addr, erl_secret, 0) == -1)
-    erl_err_quit("erl_connect_xinit failed");
-
-  if ((listen = my_listen(port)) <= 0)
-    erl_err_quit("my_listen failed ( likely unable to connect to socket )");
-  
-  if (erl_publish(port) == -1)
-    erl_err_quit("erl_publish failed");
-  
-  if ((fd = erl_accept(listen, &conn)) == ERL_ERROR)
-    erl_err_quit("erl_accept failed");
-
-
-  std::cout << "tally started at unixtimestamp" << time(0) << std::endl; 
-
-  while(true){
-    loop = 1;
-
-    while (loop) {
-      
-      got = erl_receive_msg(fd, buf, BUFSIZE, &emsg);
-      
-      if (got == ERL_TICK) { /* ignore */ }
-      else if (got == ERL_ERROR) {
-        //      loop = 0;
-      } else {
-      
-        // update the datastructure
-        event_arrays.front()->update( time(0) );
-            
-
-        if (emsg.type == ERL_REG_SEND) {
-
-
-
-          if(IS_CALL_START(emsg.msg)) {
-
-            std::cout << "start call" << std::endl;
-            while(!buffer_queue.empty()){
-              event_arrays.front()->event(buffer_queue.front().first,
-                                          buffer_queue.front().second);
-              buffer_queue.dequeue();
-            }
-            started = true;
-          }
-          else if(IS_CALL_ORDER(emsg.msg)) {
-            time_t now = time(0);
-            for(auto& er : event_arrays){
-              er->sort();
-              er->update(now);
-            }
-          } else if(IS_CALL_HANDLE_EVENT_TZ(emsg.msg)){
-            ETERM* tuplep, *event_list, *binding_list, *ts;
-
-            tuplep       = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
-
-            event_list   = erl_element(2, tuplep);
-            binding_list = erl_element(3, tuplep);
-            ts           = erl_element(4, tuplep);
-
-            std::vector< counter_idx_t> counters;
-            while( !ERL_IS_NIL(event_list) ) {
-              ETERM* head = ERL_CONS_HEAD(event_list);
-              counter_name_t counter_name = term2str(head);
-              counter_idx_t counter_idx = counter_idx_assigner.get_idx(counter_name);
-              
-              counters.push_back(counter_idx);
-              event_list = ERL_CONS_TAIL(event_list);
-            }
-            std::sort(counters.begin(), counters.end());
-
-            while(!ERL_IS_NIL(binding_list)){
-              ETERM* head = ERL_CONS_HEAD(binding_list);
-              std::string counter_id = term2str(erl_element(1, head));
-              std::string lb_id      = term2str(erl_element(2, head));
-              
-              leaderboard_idx_t leaderboard_idx = leaderboard_idx_assigner.get_idx(lb_id);
-              counter_idx_t counter_idx = counter_idx_assigner.get_idx(counter_id);
-              
-              if(event_array::lb_map.count(leaderboard_idx) == 0) {
-                for(auto i : intervals) {
-                  event_array::lb_map[leaderboard_idx][i] = new leaderboard;
-                }
-              }
-
-              event_array::lb_lookup_map[counter_idx].insert(leaderboard_idx);
-              binding_list =  ERL_CONS_TAIL(binding_list);
-            }
-
-            while((!buffer_queue.empty()) && (buffer_queue.front().second < ERL_INT_VALUE(ts))){
-              event_arrays.front()->event(buffer_queue.front().first,
-                                          buffer_queue.front().second);
-              buffer_queue.dequeue();
-            }
-            
-            event_arrays.front()->event(counters, ERL_INT_VALUE(ts));
-            
-            erl_free_compound(tuplep); 
-          }else if(IS_CALL_HANDLE_EVENT(emsg.msg)){
-            ETERM* tuplep, *event_list, *binding_list;
-
-            tuplep       = erl_element(3, emsg.msg);
-
-            event_list   = erl_element(2, tuplep);
-            binding_list = erl_element(3, tuplep);
-
-            std::vector< counter_idx_t> counters;
-            while(!ERL_IS_NIL(event_list)){
-              ETERM* head = ERL_CONS_HEAD(event_list);
-              counter_name_t counter_name = term2str(head);
-              counter_idx_t counter_idx = counter_idx_assigner.get_idx(counter_name);
-              counters.push_back(counter_idx);
-              event_list =  ERL_CONS_TAIL(event_list);
-            }
-            std::sort(counters.begin(), counters.end());
-              
-            while(!ERL_IS_NIL(binding_list)){
-              ETERM* head = ERL_CONS_HEAD(binding_list);
-              std::string counter_id = term2str(erl_element(1, head));
-              std::string lb_id      = term2str(erl_element(2, head));
-
-              leaderboard_idx_t leaderboard_idx = leaderboard_idx_assigner.get_idx(lb_id);
-              counter_idx_t counter_idx = counter_idx_assigner.get_idx(counter_id);
-              
-              if(event_array::lb_map.count(leaderboard_idx) == 0) {
-                for(auto i : intervals) {
-                  event_array::lb_map[leaderboard_idx][i] = new leaderboard;
-                }
-              }
-              event_array::lb_lookup_map[counter_idx].insert(leaderboard_idx);
-              binding_list =  ERL_CONS_TAIL(binding_list);
-            }
-            
-            if(started) event_arrays.front()->event(counters, time(0));
-            else buffer_queue.enqueue(make_pair(counters, time(0)));
-            
-            erl_free_compound(tuplep); 
-          }
-          
-          else if (IS_CALL_GET_COUNTER(emsg.msg)) {
-
-            ETERM *fromp;
-            fromp = erl_element(2, emsg.msg);
-
-            ETERM* tuplep;
-            tuplep = erl_element(3, emsg.msg);
-            
-            counter_name_t counter_name = term2str(erl_element(2, tuplep));
-            counter_idx_t counter_idx =  counter_idx_assigner.get_idx(counter_name);
-            
-            ETERM* list = erl_mk_empty_list();
-            for(auto& events : event_arrays) {
-              ETERM* tuple[2];
-              tuple[0] = erl_mk_uint(events->timespan);
-              tuple[1] = erl_mk_ulonglong(events->counters[counter_idx]);
-              ETERM* hd = erl_mk_tuple(tuple, 2);
-              ETERM* new_list = erl_cons(hd, list);
-              erl_free_term(hd);
-              erl_free_term(list);
-              list = new_list;
-              erl_free_term(tuple[0]);
-              erl_free_term(tuple[1]);
-
-            }
-
-            ETERM* tuple[2];
-            tuple[0] = erl_mk_atom("tally");
-            tuple[1] = list;
-
-            ETERM* resp = erl_mk_tuple(tuple, 2);
-            erl_free_term(tuple[0]);
-            erl_free_term(tuple[1]);
-            
-
-            erl_send(fd, fromp, resp);
-            erl_free_compound(tuplep); 
-            erl_free_term(fromp); 
-            erl_free_compound(resp); 
-          }
-          else  if (IS_CALL_GET_LEADERBOARD(emsg.msg)) {
-
-            ETERM *fromp   = erl_element(2, emsg.msg);
-            ETERM* tuplep  = erl_element(ERL_TUPLE_SIZE(emsg.msg), emsg.msg);
-            ETERM* lb_id_p = erl_element(2, tuplep);
-            
-
-            std::string  lb_id  = term2str(lb_id_p);
-
-            
-            unsigned int lb_dim = ERL_INT_UVALUE(erl_element(3, tuplep));
-            erl_free_term(lb_id_p);
-
-            int page = 0;
-            int page_size = 10;
-
-            ETERM* page_p = erl_element(4, tuplep);
-            if (page_p) page = ERL_INT_UVALUE(page_p);
-            
-            leaderboard_idx_t leaderboard_idx = leaderboard_idx_assigner.get_idx(lb_id);
-            
-            ETERM* list = erl_mk_empty_list();
-            
-            if(event_array::lb_map.count(leaderboard_idx) != 0
-               && event_array::lb_map[leaderboard_idx].count(lb_dim) != 0){
-
-              auto board = event_array::lb_map[leaderboard_idx][lb_dim]->get_range(0 + page*page_size,10 + page*page_size);
-
-              for(auto entry = board.begin(); (entry != board.end()); entry++) {
-                counter_name_t counter_name = counter_idx_assigner.get_token(entry->second);
-                ETERM* tuple[2];
-                tuple[0] = erl_mk_binary(counter_name.c_str(), counter_name.length());
-                tuple[1] = erl_mk_uint(entry->first);
-                ETERM* hd = erl_mk_tuple(tuple, 2);
-                ETERM* new_list = erl_cons(hd, list);
-                erl_free_term(list);
-                list = new_list;
-                erl_free_term(hd);
-                erl_free_term(tuple[0]);
-                erl_free_term(tuple[1]);
-              }
-            }
-
-            ETERM* tuple[2];
-            tuple[0] = erl_mk_atom("tally");
-            tuple[1] = list;
-            ETERM* resp = erl_mk_tuple(tuple, 2);
-            erl_free_term(tuple[0]);
-            erl_free_term(tuple[1]);
-            
-            erl_send(fd, fromp, resp);
-            erl_free_term(fromp); 
-            erl_free_compound(tuplep); 
-            erl_free_compound(resp); 
-          }
-
-          else if (IS_CALL_LIST_LEADERBOARDS(emsg.msg)) {
-            ETERM *fromp = erl_element(2, emsg.msg);
-            ETERM* list  = erl_mk_empty_list();
-
-            for(auto board : event_array::lb_map) {
-              for(auto i : intervals) {
-                ETERM* tuple[2];
-                std::string leaderboard_id = leaderboard_idx_assigner.get_token(board.first);
-                tuple[0] = erl_mk_binary(leaderboard_id.c_str(), leaderboard_id.length());
-                tuple[1] = erl_mk_uint(i);
-                list = erl_cons(erl_mk_tuple(tuple, 2), list);
-              }
-            }
-            
-            ETERM* tuple[2];
-            tuple[0] = erl_mk_atom("tally");
-            tuple[1] = list;
-            
-            ETERM* resp = erl_mk_tuple(tuple, 2);
-
-            
-            erl_send(fd, fromp, resp);
-            erl_free_term(fromp); 
-            erl_free_compound(resp); 
-          }
-
-          erl_free_term(emsg.to); 
-          erl_free_term(emsg.from); 
-          erl_free_term(emsg.msg);
-        
-        }
+    for(auto lb : event_array::lb_lookup_map[counter]) {
+      for(auto& event_array : event_arrays) {
+        long adjusted_count = insert_count - event_array->counters[counter];
+        if ( event_array::lb_map[lb].count(event_array->timespan) )
+          event_array::lb_map[lb][event_array->timespan]->add(counter, adjusted_count );
       }
-      
-    } /* while */
-    erl_close_connection(fd);
+    }
+    
+  }
+
+
+  event_arrays.front()->event(counters, timestamp);
+}
+
+void
+tally::update(timestamp_t ts) {
+  for(auto event_array : event_arrays)
+    event_array->update(ts);
+
+  for(auto event_metric_array : event_metric_arrays)
+    event_metric_array->update(ts);
+}
+
+void
+tally::sort() {
+  time_t now = time(0);
+  for(auto& er : event_arrays){
+    er->sort();
+    er->update(now);
   }
 }
 
+std::vector< std::pair<unsigned int, int> >
+tally::count_get_interval_counters(counter_idx_t counter_idx) const {
+  std::vector<std::pair<unsigned int, int> > ret;
+  if(counter_idx < event_array::insert_counters.length()) {
+    unsigned long insert_count = event_array::insert_counters[counter_idx];
+    for(auto& evr : event_arrays)
+      ret.push_back(std::make_pair(evr->timespan,  insert_count - evr->get_counter(counter_idx) ));
+  }
+  else 
+    for(auto& evr : event_arrays)
+      ret.push_back(std::make_pair(evr->timespan,  0 ));
   
-bool is_call_funcname(std::string func_name, ETERM* call_term) {
-  ETERM  *tuplep = erl_element(ERL_TUPLE_SIZE(call_term), call_term);
-  ETERM  *fnp    = erl_element(1, tuplep   );
-  
-  // printf("testing : %s \n", ERL_ATOM_PTR(fnp));
-  bool res = (strncmp(ERL_ATOM_PTR(fnp), func_name.c_str(), strlen(func_name.c_str())) == 0);
-  
-  erl_free_term(tuplep);
-  erl_free_term(fnp);
-  return res;
+  return ret;
 }
 
-int my_listen(int port) {
-  int listen_fd;
-  struct sockaddr_in addr;
-  int on = 1;
+std::vector<std::pair<long, counter_idx_t> >
+tally::count_get_leaderboard(leaderboard_idx_t leaderboard_idx,
+                       unsigned interval, 
+                       int page, 
+                       int page_size) const {
 
-  if ((listen_fd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    return (-1);
-
-  setsockopt(listen_fd, SOL_SOCKET, SO_REUSEADDR, &on, sizeof(on));
-
-  memset((void*) &addr, 0, (size_t) sizeof(addr));
-  addr.sin_family = AF_INET;
-  addr.sin_port = htons(port);
-  addr.sin_addr.s_addr = htonl(INADDR_ANY);
-
-  if (bind(listen_fd, (struct sockaddr*) &addr, sizeof(addr)) < 0)
-    return (-1);
-
-  listen(listen_fd, 100);
-  return listen_fd;
+  if(event_array::lb_map.count(leaderboard_idx) != 0
+     && event_array::lb_map[leaderboard_idx].count(interval) != 0) {
+    auto leaderboard_instance = event_array::lb_map[leaderboard_idx][interval];
+    return leaderboard_instance->get_range( page*page_size, page_size + page*page_size);
+  }else
+    return std::vector<std::pair<long, counter_idx_t> >();
 }
 
+
+
+void
+tally::handle_metric_event(const std::vector< counter_idx_t>& counters,
+                           timestamp_t timestamp, metric_payload_t payload) {  
+  for(auto counter : counters) {
+    event_metric_array::insert_counters[counter] ++;
+    event_metric_array::insert_sums[counter]   += payload;
+    event_metric_array::insert_sqsums[counter] += payload*payload;
+
+    // add counter to leaderboard
+    long insert_count = event_metric_array::insert_counters[counter];
+    
+    for(auto lb : event_metric_array::lb_lookup_map[counter]) {
+      for(auto& event_metric_array : event_metric_arrays) {
+        long adjusted_count = insert_count - event_metric_array->counters[counter];
+        
+        if ( event_metric_array::lb_map[lb].count(event_metric_array->timespan) )
+          event_metric_array::lb_map[lb][event_metric_array->timespan]->add(counter, adjusted_count );
+      }
+    }
+  
+  }
+
+  event_metric_arrays.front()->event(counters, payload, timestamp);
+}
+
+std::vector< std::pair<struct metric_counter_stats, timestamp_t> >
+tally::metric_get_interval_counters(counter_idx_t counter_idx) const {
+  
+  std::vector<std::pair<struct metric_counter_stats,timestamp_t> > ret;
+  if(counter_idx < event_metric_array::insert_counters.length()) {
+      unsigned long insert_count      = event_metric_array::insert_counters[counter_idx];
+      unsigned long long insert_sum   = event_metric_array::insert_sums[counter_idx];
+      unsigned long long insert_sqsum = event_metric_array::insert_sqsums[counter_idx];
+    for(auto evr : event_metric_arrays){
+
+      unsigned long adjusted_count  = insert_count - evr->counters[counter_idx];
+      unsigned long adjusted_sum    = insert_sum   - evr->sums[counter_idx];
+      unsigned long adjusted_sqsum  = insert_sqsum - evr->sqsums[counter_idx];
+
+      struct metric_counter_stats stats = {.count = adjusted_count,
+                                           .sum   = adjusted_sum,
+                                           .sqsum = adjusted_sqsum};
+      
+      ret.push_back(std::make_pair(stats, evr->timespan));
+    }
+  }
+  else 
+    for(auto& evr : event_metric_arrays){
+      struct metric_counter_stats stats = {.count = 0,
+                                           .sum   = 0,
+                                           .sqsum = 0};
+      
+      ret.push_back(std::make_pair(stats, evr->timespan));
+    }
+  
+  return ret;
+}
+
+std::vector<std::pair<long, counter_idx_t> >
+tally::metric_get_leaderboard(leaderboard_idx_t leaderboard_idx,
+                              unsigned interval, 
+                              int page, 
+                              int page_size) const {
+
+  if(event_metric_array::lb_map.count(leaderboard_idx) != 0
+     && event_metric_array::lb_map[leaderboard_idx].count(interval) != 0) {
+    auto leaderboard_instance = event_metric_array::lb_map[leaderboard_idx][interval];
+    return leaderboard_instance->get_range( page*page_size, page_size + page*page_size);
+  }else
+    return std::vector<std::pair<long, counter_idx_t> >();
+}
