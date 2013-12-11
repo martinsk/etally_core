@@ -28,4 +28,3 @@ private:
 
 
 
-// ./tally_srv "127.0.0.1" "livestats01" "tally@livestats01.east-cloud01.tigertext.me" "QWJCDLYIBTECKABSLLND"

@@ -34,9 +34,21 @@ private:
 
 public:
 
-  friend std::ostream& operator<<(std::ostream& out,  const circular_queue<Ty>& queue) ;
+  template<typename T>
+  friend std::ostream& operator<<(std::ostream& out,  const circular_queue<T>& queue) ;
 
 };
+
+
+template<typename Ty>
+std::ostream& operator<<(std::ostream& out, const circular_queue<Ty>& queue)  {
+  out << "[";
+  for(int i = 0; i != queue.size; i ++){
+    out << queue.data[(queue.back_p - queue.size + i)%queue.container_size] << " ";
+  }
+  out << "]";
+  return out;
+}
 
 
 
@@ -66,12 +78,12 @@ const Ty& circular_queue<Ty>::front() const {
 
 template<typename Ty>
 Ty circular_queue<Ty>::back() {
-  return data[ back_p ];
+  return data[ (back_p -1 ) % container_size];
 }
 
 template<typename Ty>
 const Ty& circular_queue<Ty>::back() const {
-  return data[ back_p ];
+  return data[ (back_p -1) % container_size ];
 }
 
 template<typename Ty>

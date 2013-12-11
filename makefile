@@ -1,9 +1,3 @@
-#
-# 'make depend' uses makedepend to automatically generate dependencies 
-#               (dependencies are added to end of Makefile)
-# 'make'        build executable file 'mycc'
-# 'make clean'  removes all .o and executable files
-#
 
 # define the C compiler to use
 UNAME_S := $(shell uname -s)
@@ -15,7 +9,7 @@ UNAME_S := $(shell uname -s)
   endif
 
 # define any compile-time flags
-CFLAGS = -Wall -O3 -std=c++11 -g
+CFLAGS = -Wall -O2 -std=c++11  -DNDEBUG # -pg
 
 # define any directories containing header files other than /usr/include
 #
@@ -30,10 +24,10 @@ endif
 #   if I wanted to include libraries not in /usr/lib I'd specify
 #   their path using -Lpath, something like:
 ifeq ($(UNAME_S),Linux)
-LFLAGS = -lerl_interface -lei -lnsl -pthread -lc
+    LFLAGS = -lerl_interface -lei -lnsl -pthread -lc
 endif
 ifeq ($(UNAME_S),Darwin)
-LFLAGS = -lc++  -lerl_interface -lei -lc 
+    LFLAGS = -lc++  -lerl_interface -lei -lc
 endif
 
 # define any libraries to link into executable:
@@ -47,7 +41,7 @@ endif
   endif
 
 # define the C source files
-SRCS = src/tally.cc src/event_array.cc src/leaderboard.cc src/idx_assigner.cc  
+SRCS = src/main.cc src/test_suite.cc src/tally.cc src/count_handlers.cc src/metric_handlers.cc src/event_array.cc src/event_metric_array.cc src/leaderboard.cc src/idx_assigner.cc  
 
 # define the C object files 
 #

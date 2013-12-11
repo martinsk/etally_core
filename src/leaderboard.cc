@@ -18,14 +18,21 @@ leaderboard::add(counter_idx_t elm, long score) {
     if(oldscore < score) bubble_up(idx_lookup[elm]);
     else bubble_down(idx_lookup[elm]);
   }
+
 }
 
 void 
 leaderboard::remove(counter_idx_t elm){
-  board[idx_lookup[elm]].first = -1;
-  bubble_down(idx_lookup[elm]);
-  idx_lookup.erase(elm);
+  
+  idx_t idx = idx_lookup[elm];
+  swap(idx, board.size()-1);
+  bubble_down(idx);
   board.pop_back();
+
+  // board[idx_lookup[elm]].first = 0;
+  // bubble_down(idx_lookup[elm]);
+  idx_lookup.erase(elm);
+  // board.pop_back();
 }
 
 
@@ -57,34 +64,4 @@ void leaderboard::print() {
   }
 }
 
-void leaderboard::bubble_up(idx_t idx) {
-  if(idx != 0) {
-    if (board[idx].first > board[idx -1].first) {
-      swap(idx, idx-1);
-      bubble_up(idx-1);
-    }
-  }
-}
-
-
-
-void leaderboard::bubble_down(idx_t idx)  {
-  if(idx != board.size() -1) {
-    if (board[idx].first < board[idx +1].first) {
-      swap(idx, idx+1);
-      bubble_down(idx+1);
-    }
-  }
-}
-
-
-
-
-void leaderboard::swap(idx_t idx1, idx_t idx2)  {
-  idx_lookup[board[idx1].second] = idx2;
-  idx_lookup[board[idx2].second] = idx1;
-  auto tmp = board[idx1];
-  board[idx1] = board[idx2];
-  board[idx2] = tmp;   
-}
 

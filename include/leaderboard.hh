@@ -12,8 +12,6 @@ class event_array;
 
 class leaderboard{
 private:
-  // std::map<count_name_t, unsigned long> score_map;
-  // std::set<std::pair<unsigned long, count_name_t> > board;
 
   std::unordered_map<counter_idx_t, idx_t> idx_lookup;
   std::vector<std::pair<long, counter_idx_t> > board;
@@ -30,10 +28,44 @@ public:
   void print();
 
 private:
-  void bubble_up(idx_t idx);
-  void bubble_down(idx_t idx);
+  inline void bubble_up(idx_t idx);
+  inline void bubble_down(idx_t idx);
 
-  void swap(idx_t elm1, idx_t elm2);
+  inline void swap(idx_t elm1, idx_t elm2);
 };
+
+
+
+void leaderboard::bubble_up(idx_t idx) {
+  if(idx != 0) {
+    if (board[idx].first > board[idx -1].first) {
+      swap(idx, idx-1);
+      bubble_up(idx-1);
+    }
+  }
+}
+
+
+
+void leaderboard::bubble_down(idx_t idx)  {
+  if(idx != board.size() -1) {
+    if (board[idx].first < board[idx +1].first) {
+      swap(idx, idx+1);
+      bubble_down(idx+1);
+    }
+  }
+}
+
+
+
+
+void leaderboard::swap(idx_t idx1, idx_t idx2)  {
+  idx_lookup[board[idx1].second] = idx2;
+  idx_lookup[board[idx2].second] = idx1;
+  auto tmp = board[idx1];
+  board[idx1] = board[idx2];
+  board[idx2] = tmp;   
+}
+
 
 #endif // LEADERBOARD_HH
