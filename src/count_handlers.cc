@@ -20,7 +20,6 @@
 #include <unordered_map>
 
 #include "types.hh"
-#include "bplustree.hh"
 #include "tally.hh"
 #include "event_array.hh"
 #include "leaderboard.hh"
