@@ -94,8 +94,8 @@ void metric_handle_event(ErlMessage& emsg, tally& tally_srv) {
   ETERM *tuplep       = erl_element(3, emsg.msg);
   ETERM *event_list   = erl_element(2, tuplep);
   ETERM *binding_list = erl_element(3, tuplep);
+  ETERM *payload           = erl_element(4, tuplep);
 
-  int payload = 1;
  
 
   std::vector< counter_idx_t> counters;
@@ -110,9 +110,9 @@ void metric_handle_event(ErlMessage& emsg, tally& tally_srv) {
 
   metric_bind_leaderboards( binding_list, tally_srv );
             
-  if(tally_srv.started) tally_srv.handle_metric_event(counters, time(0), payload);
+  if(tally_srv.started) tally_srv.handle_metric_event(counters, time(0), ERL_INT_UVALUE(payload));
   else tally_srv.metric_buffer_queue.enqueue(make_pair(make_pair(counters,
-                                                                 time(0)), payload));
+                                                                 time(0)), ERL_INT_UVALUE(payload)));
             
   erl_free_compound(tuplep); 
 }
