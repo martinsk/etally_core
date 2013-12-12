@@ -7,7 +7,7 @@
 
 #include "types.hh"
 #include "tally.hh"
-#include "btree.hh"
+
 #include "circular_queue.hh"
 #include "event_array.hh"
 #include "leaderboard.hh"
@@ -187,97 +187,97 @@ void test_suite_event_array() {
   test_event_array_sort();
 }
 
-void test_btree1() {
-  btree<int> tree;
-  tree.insert(1);
-  assert_equal(tree.contains(1), true);
-  assert_equal(tree.contains(2), false);
-  assert_equal(tree.size(), 1);
-}
+// void test_btree1() {
+//   btree<int> tree;
+//   tree.insert(1);
+//   assert_equal(tree.contains(1), true);
+//   assert_equal(tree.contains(2), false);
+//   assert_equal(tree.size(), 1);
+// }
 
-void test_btree2() {
-  btree<int> tree;
-  tree.insert(1);
-  tree.insert(2);
-  tree.insert(3);
-  assert_equal(tree.contains(1), true);
-  assert_equal(tree.contains(2), true);
-  assert_equal(tree.contains(3), true);
-  assert_equal(tree.contains(4), false);
-  assert_equal(tree.size(), 3);
-  std::cerr << tree << std::endl;
-}
+// void test_btree2() {
+//   btree<int> tree;
+//   tree.insert(1);
+//   tree.insert(2);
+//   tree.insert(3);
+//   assert_equal(tree.contains(1), true);
+//   assert_equal(tree.contains(2), true);
+//   assert_equal(tree.contains(3), true);
+//   assert_equal(tree.contains(4), false);
+//   assert_equal(tree.size(), 3);
+//   std::cerr << tree << std::endl;
+// }
 
-void test_btree3() {
-  btree<int> tree;
-  tree.insert(1);
-  tree.insert(2);
-  tree.insert(3);
-  assert_equal(tree.contains(1), true);
-  assert_equal(tree.contains(2), true);
-  assert_equal(tree.contains(3), true);
-  assert_equal(tree.size(), 3);
-  tree.remove(3);
-  assert_equal(tree.contains(1), true);
-  assert_equal(tree.contains(2), true);
-  assert_equal(tree.contains(3), false);
-  assert_equal(tree.size(), 2);
-  tree.remove(2);
-  tree.remove(1);
-  assert_equal(tree.contains(1), false);
-  assert_equal(tree.contains(2), false);
-  assert_equal(tree.contains(3), false);
-  assert_equal(tree.size(), 0);
-}
+// void test_btree3() {
+//   btree<int> tree;
+//   tree.insert(1);
+//   tree.insert(2);
+//   tree.insert(3);
+//   assert_equal(tree.contains(1), true);
+//   assert_equal(tree.contains(2), true);
+//   assert_equal(tree.contains(3), true);
+//   assert_equal(tree.size(), 3);
+//   tree.remove(3);
+//   assert_equal(tree.contains(1), true);
+//   assert_equal(tree.contains(2), true);
+//   assert_equal(tree.contains(3), false);
+//   assert_equal(tree.size(), 2);
+//   tree.remove(2);
+//   tree.remove(1);
+//   assert_equal(tree.contains(1), false);
+//   assert_equal(tree.contains(2), false);
+//   assert_equal(tree.contains(3), false);
+//   assert_equal(tree.size(), 0);
+// }
 
-void test_btree4() {
-  btree<std::pair<int, long> > tree;
-  std::pair<int, long> elm = std::make_pair<int, long>(1, 1);
-  tree.insert(elm);
-  assert_equal(tree.contains(elm), true);
-  tree.remove(elm);
-  assert_equal(tree.size(), 0);
-}
+// void test_btree4() {
+//   btree<std::pair<int, long> > tree;
+//   std::pair<int, long> elm = std::make_pair<int, long>(1, 1);
+//   tree.insert(elm);
+//   assert_equal(tree.contains(elm), true);
+//   tree.remove(elm);
+//   assert_equal(tree.size(), 0);
+// }
 
 
-void test_btree5() {
-  btree<int > tree;
-  tree.insert(10);
-  tree.insert(2);
-  tree.insert(5);
-  tree.insert(4);
-  tree.insert(3);
-  std::cerr << tree << std::endl;
-  tree.tour();
-}
+// void test_btree5() {
+//   btree<int > tree;
+//   tree.insert(10);
+//   tree.insert(2);
+//   tree.insert(5);
+//   tree.insert(4);
+//   tree.insert(3);
+//   std::cerr << tree << std::endl;
+//   tree.tour();
+// }
 
-void test_btree6() {
-  btree<int > tree;
-  for(int i = 0; i != 10; i++)
-    tree.insert(i);
+// void test_btree6() {
+//   btree<int > tree;
+//   for(int i = 0; i != 10; i++)
+//     tree.insert(i);
 
-  std::cerr << std::endl;
+//   std::cerr << std::endl;
 
-  tree.tour();
-  auto r = tree.range(2,5);
-  std::cerr << std::endl;
-  std::cerr << std::endl;
+//   tree.tour();
+//   auto r = tree.range(2,5);
+//   std::cerr << std::endl;
+//   std::cerr << std::endl;
  
-  for(int i : r)
-    std::cerr << i << " " << std::endl;
-}
+//   for(int i : r)
+//     std::cerr << i << " " << std::endl;
+// }
 
 
 
 
-void test_suite_btree() {
-  test_btree1();
-  test_btree2();
-  test_btree3();
-  test_btree4();
-  test_btree5();
-  test_btree6();
-}
+// void test_suite_btree() {
+//   test_btree1();
+//   test_btree2();
+//   test_btree3();
+//   test_btree4();
+//   test_btree5();
+//   test_btree6();
+// }
 
 
 std::chrono::time_point<std::chrono::system_clock> time_now() {
@@ -326,7 +326,7 @@ bool test_suite() {
   std::cerr << "info: starting tests" << std::endl;
   test_suite_queue();
   test_suite_event_array();
-  test_suite_btree();
+  //  test_suite_btree();
   test_suite_set();
 
   std::cerr << "info: test suites passed" << std::endl;
