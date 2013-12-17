@@ -17,7 +17,6 @@
 #include <iostream>
 #include <queue>  
 #include <string>
-#include <unordered_map>
 
 #include "types.hh"
 #include "tally.hh"
