@@ -6,11 +6,13 @@
 #include <iostream>
 #include <algorithm>
 
-std::unordered_map<std::vector<counter_idx_t>, idx_t, uint32_vector_hasher>  event_metric_array::encode_map;
+std::unordered_map<std::vector<counter_idx_t>, idx_t, vector_hash<uint32_t> >  event_metric_array::encode_map;
 std::unordered_map<idx_t, std::vector<counter_idx_t> >                       event_metric_array::decode_map;
 std::unordered_map<idx_t, unsigned long>                                     event_metric_array::reference_counters;
 std::unordered_set<idx_t>                                                    event_metric_array::unused_idx;
 idx_t                                                                        event_metric_array::max_idx = 0;
+
+std::unordered_map<counter_idx_t, std::unordered_map<unsigned int,  percentile* > >  event_metric_array::percentile_map;
 
 leaderboard_lookup_counter_map event_metric_array::lb_map;
 lb_lookup_set_map              event_metric_array::lb_lookup_map;
@@ -45,10 +47,11 @@ void event_metric_array::event(const std::vector<counter_idx_t>& groups,
   }
   reference_counters[event_idx] ++;
   
+  
   struct event_metric e = {.timestamp = insert_time,
                            .event_idx = event_idx  ,
                            .payload   = payload    };
-
+  
   event(e);
 }
 
@@ -65,10 +68,7 @@ void event_metric_array::update(timestamp_t now) {
       sqsums[s] += e.payload*e.payload;;
       
       unsigned long insert_count      = event_metric_array::insert_counters[s];
-      unsigned long long insert_sum   = event_metric_array::insert_sums[s];
-      unsigned long long insert_sqsum = event_metric_array::insert_sqsums[s];
       unsigned long adjusted_count  = insert_count - counters[s];
-
 
       for(auto lb : event_metric_array::lb_lookup_map[s]){
         auto& this_lb_map = event_metric_array::lb_map[lb];
@@ -78,7 +78,11 @@ void event_metric_array::update(timestamp_t now) {
           else 
             this_lb_map[timespan]->add(s, adjusted_count );
         }
-        
+      }
+
+      if(event_metric_array::percentile_map.count(s)) {
+        if (event_metric_array::percentile_map[s].count(timespan))
+          percentile_map[s][timespan] -> remove(e.payload);
       }
     }
     

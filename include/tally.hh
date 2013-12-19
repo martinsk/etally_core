@@ -12,6 +12,8 @@ class tally {
 private:  
   std::vector<unsigned> intervals;
   std::vector<unsigned> leaderboard_intervals;
+  std::vector<unsigned> percentile_intervals;
+  
   std::vector<event_array*> event_arrays;
 
   std::vector<event_metric_array*> event_metric_arrays;
@@ -30,7 +32,8 @@ public:
 
 public:
   tally(std::vector<unsigned> intervals,
-        std::vector<unsigned> leaderboard_intervals);
+        std::vector<unsigned> leaderboard_intervals,
+        std::vector<unsigned> percentile_intervals);
   ~tally();
 
   void handle_count_event(const std::vector< counter_idx_t>& counters, timestamp_t timestamp);
@@ -49,12 +52,16 @@ public:
 
 
   // metric calls
-  std::vector<std::pair<metric_counter_stats, timestamp_t> > metric_get_interval_counters(counter_idx_t) const;
+  std::vector<std::pair<metric_counter_stats, timestamp_t> > metric_get_interval_counters(counter_idx_t idx) const;
+  std::vector<std::pair<unsigned int, unsigned int> >  metric_get_percentile(counter_idx_t idx, float percent) const;
+
   std::vector<std::pair<long, counter_idx_t> > metric_get_leaderboard(leaderboard_idx_t leaderboard_idx,
                                                                       unsigned interval,
                                                                       int page, 
                                                                       int page_size) const;
   const std::vector<unsigned>& metric_get_leaderboard_intervals() const {return leaderboard_intervals;} 
+
+  const std::vector<unsigned>& metric_get_percentile_intervals() const {return percentile_intervals;} 
 };
 
 #endif

@@ -41,7 +41,7 @@ endif
   endif
 
 # define the C source files
-SRCS = src/main.cc src/test_suite.cc src/tally.cc src/count_handlers.cc src/metric_handlers.cc src/event_array.cc src/event_metric_array.cc src/leaderboard.cc src/idx_assigner.cc  
+SRCS = src/main.cc src/test_suite.cc src/tally.cc src/count_handlers.cc src/metric_handlers.cc src/event_array.cc src/event_metric_array.cc src/leaderboard.cc src/idx_assigner.cc src/percentile.cc 
 
 # define the C object files 
 #

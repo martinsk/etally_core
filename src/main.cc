@@ -137,9 +137,16 @@ int main(int argc, char **argv) {
                                                  day,
                                                  week,
                                                  month};
+
+  std::vector<unsigned> percentile_intervals = {hour,
+                                                 day,
+                                                 week,
+                                                 month};
   
   std::reverse(intervals.begin(), intervals.end());
-  tally tally_srv(intervals, leaderboard_intervals);
+  tally tally_srv(intervals,
+                  leaderboard_intervals,
+                  percentile_intervals);
 
   erl_init(NULL, 0);
   
@@ -171,7 +178,7 @@ int main(int argc, char **argv) {
           count ++;
           if(current_ts != previous_ts) {
             tally_srv.update(current_ts);
-            std::cout << "count =  " << count << std::endl;
+            //            std::cout << "count =  " << count << std::endl;
             count = 0;
           }
                if (IS_CALL_SYSTEM_START           (emsg.msg)) handle_start                  (emsg, tally_srv);

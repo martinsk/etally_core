@@ -11,9 +11,11 @@
 
 
 tally::tally(std::vector<unsigned> intervals,
-             std::vector<unsigned> leaderboard_intervals)
+             std::vector<unsigned> leaderboard_intervals,
+             std::vector<unsigned> percentile_intervals)
   : intervals(intervals),
-    leaderboard_intervals(leaderboard_intervals)
+    leaderboard_intervals(leaderboard_intervals),
+    percentile_intervals(percentile_intervals)
 {
   for(auto i = intervals.begin(); i != intervals.end(); i++) {
     if(event_arrays.empty())  event_arrays.push_back(new event_array(*i));
@@ -44,9 +46,8 @@ tally::handle_count_event(const std::vector< counter_idx_t>& counters,
           event_array::lb_map[lb][event_array->timespan]->add(counter, adjusted_count );
       }
     }
-    
-  }
 
+  }
 
   event_arrays.front()->event(counters, timestamp);
 }
@@ -120,6 +121,11 @@ tally::handle_metric_event(const std::vector< counter_idx_t>& counters,
       }
     }
   
+    if(event_metric_array::percentile_map.count(counter))
+      for(auto& event_array : event_arrays) {
+        if (event_metric_array::percentile_map[counter].count(event_array->timespan))
+          event_metric_array::percentile_map[counter][event_array->timespan] -> insert(payload);
+      }
   }
 
   event_metric_arrays.front()->event(counters, payload, timestamp);
@@ -155,6 +161,18 @@ tally::metric_get_interval_counters(counter_idx_t counter_idx) const {
       ret.push_back(std::make_pair(stats, evr->timespan));
     }
   
+  return ret;
+}
+
+
+std::vector<std::pair<unsigned int, unsigned int> >  tally::metric_get_percentile(counter_idx_t idx, float percent) const {  
+  std::vector<std::pair<unsigned int, unsigned int> > ret;
+
+  if(event_metric_array::percentile_map.count(idx ))
+    for(auto interval : metric_get_percentile_intervals()){ 
+      unsigned int count = event_metric_array::percentile_map[idx][interval]->find_percentile(percent);
+      ret.push_back(std::make_pair(interval, count));
+    }
   return ret;
 }
 

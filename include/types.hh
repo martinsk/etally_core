@@ -49,6 +49,7 @@ struct metric_counter_stats {
 
 
 
+
 std::ostream& operator<<(std::ostream& out, const struct event e); 
 std::ostream& operator<<(std::ostream& out, const struct event_metric e); 
 

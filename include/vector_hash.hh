@@ -2,7 +2,7 @@
 #define _VECTOR_HASH_HH
 
 template<typename Ty>
-class vector_hash {
+class vector_hash{
 public:
   std::size_t operator()(std::vector<Ty> const& vec) const {
     std::size_t ret = 0;
