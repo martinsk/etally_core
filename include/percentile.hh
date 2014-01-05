@@ -14,7 +14,7 @@ class percentile {
 private:
   std::vector<uint32_t> vec;
   const unsigned int arr_len;
-  const double base = 1.0f;
+  const double base = 1.01f;
   
 public:
   percentile(unsigned int arr_len);
@@ -45,6 +45,7 @@ void percentile::remove(unsigned int value) {
 unsigned int percentile::value_to_idx(unsigned int value) const {
   if(value < 100) return value;
   else if (value < 100*std::pow(base, arr_len - 100) ) {
+
     long double log_n = std::log(value/100.0);
     long double log_101 = std::log(base);    
     return static_cast<unsigned int >(std::ceil( (log_n/log_101))) + 100 ;

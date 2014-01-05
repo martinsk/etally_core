@@ -95,9 +95,6 @@ void metric_handle_event_timestamp(ErlMessage& emsg, tally& tally_srv) {
   std::sort(counters.begin(), counters.end());
 
   metric_bind_leaderboards( binding_list, tally_srv );
-
-
-
   bind_percentiles( percent_list, tally_srv );
   
   auto& buffer_queue = tally_srv.metric_buffer_queue;
@@ -117,9 +114,9 @@ void metric_handle_event(ErlMessage& emsg, tally& tally_srv) {
   ETERM *tuplep       = erl_element(3, emsg.msg);
   ETERM *event_list   = erl_element(2, tuplep);
   ETERM *binding_list = erl_element(3, tuplep);
-  ETERM *payload      = erl_element(4, tuplep);
+  ETERM *percent_list = erl_element(4, tuplep); 
+  ETERM *payload      = erl_element(5, tuplep);
 
- 
   std::vector< counter_idx_t> counters;
   while(!ERL_IS_NIL(event_list)){
     ETERM* head = ERL_CONS_HEAD(event_list);
@@ -131,13 +128,17 @@ void metric_handle_event(ErlMessage& emsg, tally& tally_srv) {
   std::sort(counters.begin(), counters.end());
 
   metric_bind_leaderboards( binding_list, tally_srv );
+  bind_percentiles( percent_list, tally_srv );
             
-  if(tally_srv.started) tally_srv.handle_metric_event(counters, time(0), ERL_INT_UVALUE(payload));
-  else tally_srv.metric_buffer_queue.enqueue(make_pair(make_pair(counters,
-                                                                 time(0)), ERL_INT_UVALUE(payload)));
-            
+  if(tally_srv.started)
+    tally_srv.handle_metric_event(counters, time(0), ERL_INT_UVALUE(payload));
+  else
+    tally_srv.metric_buffer_queue.enqueue(make_pair(make_pair(counters,
+                                                              time(0)),
+                                                    ERL_INT_UVALUE(payload)));
   erl_free_compound(tuplep); 
 }
+
 
 void metric_handle_get_counter(ErlMessage& emsg, tally& tally_srv, int fd){
   ETERM *fromp  = erl_element(2, emsg.msg);
@@ -174,26 +175,19 @@ void metric_handle_get_counter(ErlMessage& emsg, tally& tally_srv, int fd){
       pair[1] = erl_mk_uint(res.second);
       ETERM* hd = erl_mk_tuple(pair, 2);
       ETERM* new_interval_list = erl_cons(hd, interval_list);
-      //erl_free_term(interval_list);
       interval_list = new_interval_list;
-      //erl_free_term(hd);
-      // erl_free_term(pair[0]);
-      // erl_free_term(pair[1]);
     }
     ETERM* pair[2];
     pair[0] = erl_mk_float(percent);
     pair[1] =  interval_list;
     ETERM* pair_tuple = erl_mk_tuple(pair, 2);
-    // erl_free_term(pair[0]);
-    // erl_free_term(pair[1]);
  
     ETERM* new_percentile_list = erl_cons(pair_tuple, percentile_list); 
     erl_free_term(pair_tuple);
 
     erl_free_term(interval_list);
     percentile_list = new_percentile_list;
- 
- }
+  }
 
 
   ETERM* tuple[2];

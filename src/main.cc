@@ -73,6 +73,8 @@ std::ostream& operator<<(std::ostream& out, const struct event_metric e) {
 }
 
 void handle_start(ErlMessage& emsg, tally& tally_srv) {
+  std::cout << "handle start" << std::endl;
+  
   while(!tally_srv.count_buffer_queue.empty()){
     tally_srv.handle_count_event(tally_srv.count_buffer_queue.front().first,
                                  tally_srv.count_buffer_queue.front().second);
@@ -83,6 +85,8 @@ void handle_start(ErlMessage& emsg, tally& tally_srv) {
     tally_srv.handle_metric_event(tally_srv.metric_buffer_queue.front().first.first,
                                   tally_srv.metric_buffer_queue.front().first.second,
                                   tally_srv.metric_buffer_queue.front().second);
+
+
     tally_srv.metric_buffer_queue.dequeue();
   }
 
@@ -181,7 +185,10 @@ int main(int argc, char **argv) {
             //            std::cout << "count =  " << count << std::endl;
             count = 0;
           }
-               if (IS_CALL_SYSTEM_START           (emsg.msg)) handle_start                  (emsg, tally_srv);
+          if (IS_CALL_SYSTEM_START           (emsg.msg)) {
+            std::cout << "start call" << std::endl;
+            handle_start(emsg, tally_srv);
+          }
           else if (IS_CALL_COUNT_ORDER            (emsg.msg)) { tally_srv.sort(); }
           else if (IS_CALL_COUNT_HANDLE_EVENT_TZ  (emsg.msg)) count_handle_event_timestamp  (emsg, tally_srv);
           else if (IS_CALL_COUNT_HANDLE_EVENT     (emsg.msg)) count_handle_event            (emsg, tally_srv);
@@ -212,9 +219,7 @@ int main(int argc, char **argv) {
 bool is_call_funcname(std::string func_name, ETERM* call_term) {
   ETERM  *tuplep = erl_element(ERL_TUPLE_SIZE(call_term), call_term);
   ETERM  *fnp    = erl_element(1, tuplep   );
-
   bool res = (strncmp(ERL_ATOM_PTR(fnp), func_name.c_str(), strlen(func_name.c_str())) == 0);
-  
   erl_free_term(tuplep);
   erl_free_term(fnp);
   return res;
