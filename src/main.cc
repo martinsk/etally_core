@@ -103,7 +103,7 @@ int main(int argc, char **argv) {
 
   std::cout << "c_arr[1] : "<< c_arr[1] << std::endl;
 
-  assert(test_suite());
+  // assert(test_suite());
 
   if(argc != 5) {
     std::cout << "usage: ./tally_srv <ip> <localname> <longname> <cookie>" << std::endl;
